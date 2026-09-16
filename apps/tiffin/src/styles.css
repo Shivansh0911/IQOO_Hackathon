@@ -1,0 +1,588 @@
+/*
+ * Tiffin's visual identity.
+ *
+ * Deliberately nothing like the console that will sit next to it: warm clay on
+ * cream, a serif display face, generous 12-14px radii, soft shadows. The console
+ * is dark, monospaced and square-cornered. When an amber ring lands on this
+ * coral surface it should be obvious that two different products are on screen —
+ * because that is the whole point of the demo.
+ *
+ * Scoped under .tiffin so it can be embedded in another page without leaking.
+ */
+
+.tiffin {
+  --clay: #c0462b;
+  --clay-deep: #8f2f1b;
+  --clay-soft: #fbe9e2;
+  --cream: #fffaf4;
+  --card: #ffffff;
+  --ink: #2a1d16;
+  --muted: #7a6a60;
+  --line: #ecdccd;
+  --leaf: #2f7d32;
+  --saffron: #c77700;
+  --shadow: 0 1px 2px rgba(42, 29, 22, 0.06), 0 6px 18px rgba(42, 29, 22, 0.06);
+
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--cream);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.tiffin *,
+.tiffin *::before,
+.tiffin *::after {
+  box-sizing: border-box;
+}
+
+.tiffin h1,
+.tiffin h2,
+.tiffin h3 {
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.tiffin button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tiffin :focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+
+/* ── Chrome ─────────────────────────────────────────────────────────────── */
+
+.tiffin .t-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--clay);
+  color: #fff8f0;
+  flex: none;
+}
+
+.tiffin .t-wordmark {
+  font-family: Georgia, serif;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.tiffin .t-wordmark span {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.tiffin .t-header-spacer {
+  flex: 1;
+}
+
+.tiffin .t-icon-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 248, 240, 0.35);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  transition: background 160ms ease;
+}
+
+.tiffin .t-icon-btn:hover {
+  background: rgba(255, 248, 240, 0.16);
+}
+
+.tiffin .t-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--cream);
+  color: var(--clay-deep);
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.tiffin .t-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.tiffin .t-pad {
+  padding: 16px;
+}
+
+/* ── Search ─────────────────────────────────────────────────────────────── */
+
+.tiffin .t-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0 10px 0 14px;
+  box-shadow: var(--shadow);
+}
+
+.tiffin .t-searchbar input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  padding: 13px 0;
+  font: inherit;
+  color: inherit;
+}
+
+.tiffin .t-searchbar input::placeholder {
+  color: var(--muted);
+}
+
+.tiffin .t-clear {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--clay-soft);
+  color: var(--clay-deep);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.tiffin .t-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.tiffin .t-chip {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 13px;
+  color: var(--ink);
+  transition: all 160ms ease;
+}
+
+.tiffin .t-chip[aria-pressed='true'] {
+  background: var(--clay);
+  border-color: var(--clay);
+  color: #fff8f0;
+}
+
+.tiffin .t-result-count {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 600;
+  margin: 18px 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Restaurant card ────────────────────────────────────────────────────── */
+
+.tiffin .t-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tiffin .t-card {
+  display: flex;
+  gap: 13px;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.tiffin .t-card:hover {
+  transform: translateY(-1px);
+  border-color: #dcc4b0;
+}
+
+.tiffin .t-monogram {
+  width: 62px;
+  height: 62px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fff8f0;
+  font-family: Georgia, serif;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.tiffin .t-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tiffin .t-card-name {
+  display: block;
+  font-family: Georgia, serif;
+  font-size: 15.5px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.tiffin .t-card-cuisines,
+.tiffin .t-card-meta {
+  display: block;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.tiffin .t-card-meta {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tiffin .t-rating {
+  color: var(--saffron);
+  font-weight: 600;
+}
+
+.tiffin .t-veg-mark {
+  border: 1.5px solid var(--leaf);
+  border-radius: 3px;
+  width: 14px;
+  height: 14px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+
+.tiffin .t-veg-mark::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--leaf);
+}
+
+.tiffin .t-veg-mark.is-nonveg {
+  border-color: var(--clay-deep);
+}
+
+.tiffin .t-veg-mark.is-nonveg::after {
+  background: var(--clay-deep);
+}
+
+.tiffin .t-offer {
+  margin-top: 8px;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--leaf);
+  background: #eaf5ea;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+/* ── Restaurant page ────────────────────────────────────────────────────── */
+
+.tiffin .t-back {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.tiffin .t-hero {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tiffin .t-hero h1 {
+  font-size: 22px;
+}
+
+.tiffin .t-section-title {
+  margin: 20px 0 12px;
+  font-size: 16px;
+}
+
+.tiffin .t-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: flex-start;
+}
+
+.tiffin .t-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tiffin .t-item-name {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tiffin .t-item-desc {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin-top: 3px;
+}
+
+.tiffin .t-item-price {
+  margin-top: 5px;
+  font-weight: 600;
+}
+
+.tiffin .t-tag-best {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--saffron);
+  border: 1px solid #f0dcb8;
+  background: #fdf5e6;
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+
+.tiffin .t-add {
+  flex: none;
+  border: 1px solid var(--clay);
+  background: var(--clay-soft);
+  color: var(--clay-deep);
+  border-radius: 10px;
+  padding: 9px 20px;
+  font-weight: 700;
+  font-size: 13px;
+  transition: background 160ms ease;
+}
+
+.tiffin .t-add:hover {
+  background: #f7d9cd;
+}
+
+.tiffin .t-add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--line);
+  background: #f3ece6;
+  color: var(--muted);
+}
+
+/* ── Cart ───────────────────────────────────────────────────────────────── */
+
+.tiffin .t-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--clay);
+  border-radius: 10px;
+  overflow: hidden;
+  flex: none;
+}
+
+.tiffin .t-stepper button {
+  width: 32px;
+  height: 34px;
+  border: 0;
+  background: var(--clay-soft);
+  color: var(--clay-deep);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.tiffin .t-stepper button:hover {
+  background: #f7d9cd;
+}
+
+.tiffin .t-qty {
+  min-width: 34px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.tiffin .t-bill {
+  margin-top: 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
+.tiffin .t-bill-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  color: var(--muted);
+}
+
+.tiffin .t-bill-row.is-total {
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 16px;
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  padding-top: 11px;
+}
+
+.tiffin .t-primary {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--clay);
+  color: #fff8f0;
+  padding: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  transition: background 160ms ease;
+}
+
+.tiffin .t-primary:hover {
+  background: var(--clay-deep);
+}
+
+.tiffin .t-empty {
+  text-align: left;
+  padding: 40px 4px;
+  color: var(--muted);
+}
+
+.tiffin .t-empty h2 {
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+/* ── Checkout and confirmation ──────────────────────────────────────────── */
+
+.tiffin .t-address {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+}
+
+.tiffin .t-address-label {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.tiffin .t-pay-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 12px;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 8px;
+}
+
+.tiffin .t-pay-option[aria-checked='true'] {
+  border-color: var(--clay);
+  background: var(--clay-soft);
+}
+
+.tiffin .t-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+
+.tiffin .t-pay-option[aria-checked='true'] .t-radio {
+  border-color: var(--clay);
+}
+
+.tiffin .t-pay-option[aria-checked='true'] .t-radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--clay);
+}
+
+.tiffin .t-confirmed {
+  padding: 48px 20px;
+}
+
+.tiffin .t-confirmed .t-tick {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--leaf);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  margin-bottom: 16px;
+}
+
+.tiffin .t-order-id {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 8px;
+}
