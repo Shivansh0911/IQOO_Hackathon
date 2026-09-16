@@ -19,12 +19,13 @@ still need a human decision.
 > and sending the image to a cloud vision model, it reads the app's structure —
 > the accessibility tree on Android, the DOM on the web — and serialises it to
 > compact JSON. One screen costs about 438 tokens instead of a screenshot's
-> ~1,500, and at that size a 1-billion-parameter model is enough to plan the next
-> action. So the whole agent fits on the phone: offline, private, instant. It
-> taps, types, scrolls and verifies, then produces a test report with per-step
-> evidence and a pass/fail verdict.
+> ~1,500, and at that size a 1.5-billion-parameter model is enough to choose the
+> next action. So the agent fits on the device: private, instant, and working
+> with the network off once the model is loaded. It taps, types, scrolls and
+> verifies, then produces a test report with per-step evidence and a pass/fail
+> verdict.
 
-*(96 words.)*
+*(98 words.)*
 
 ---
 
@@ -37,16 +38,18 @@ still need a human decision.
 > grow with page density. That is what makes a 1.5B model sufficient, and a
 > 1.5B model is what fits on the phone.
 >
-> The prototype is deployed and a judge can drive it themselves rather than watch
-> a video. It is not a mockup: the agent reads the live DOM, plans one action at
-> a time, validates every action against the screen it was shown before executing
-> it, and refuses anything destructive without asking. You give it a goal in
-> plain speech — it works out the flow itself; nobody records a script first.
+> The prototype is a link a judge can drive themselves rather than a video. It
+> is not a mockup: the agent reads the live DOM, plans one action at a time,
+> validates every action against the screen it was shown before executing it, and
+> refuses anything destructive without asking. You give it a goal in plain speech
+> and it works out the flow itself; nobody records a script first.
 >
-> A Chrome extension runs the same agent, unchanged, against real third-party
-> websites, which is how we know the Android port is a swap and not a rewrite.
+> We also measured what we could not prove: the same reader on a 13,000-node
+> Wikipedia page, and a run where the on-device model was not good enough — 15
+> bad outputs in 20 calls, all caught, none reaching the app. The console replays
+> that run. We would rather show you the guardrails working than a happy path.
 
-*(148 words.)*
+*(149 words.)*
 
 ---
 
@@ -57,8 +60,8 @@ estimates.
 
 ## 4 · Live video walkthrough
 
-Shot list in [`DEMO_SCRIPT.md`](./DEMO_SCRIPT.md), derived from the four scripted
-runs in the demo console.
+Shot list in [`DEMO_SCRIPT.md`](./DEMO_SCRIPT.md), derived from the five runs in
+the demo console. It names which tier to record each run on and why.
 
 ## 5 · Prototype URL
 
@@ -144,3 +147,15 @@ Stated here so nobody on the team accidentally overstates it in an interview:
 - **Latency numbers measured in a browser do not transfer to a phone.** They will
   be re-measured on the device and re-stated.
 - We have **not** trained or fine-tuned a model.
+- **"Offline" is scoped.** Once the model is loaded, the network can be cut and
+  the loop keeps working — verified. A cold start with no network does not work,
+  because there is no service worker caching the app shell.
+- **0% invalid output is not 0% wrong.** The validator checks that an action is
+  legal for the screen in front of it, not that it was the best choice. The
+  on-device model does not yet complete a multi-step goal reliably; it produces
+  legal single actions and then loops, and the guardrail stops it. Say
+  "invalid-output rate", never "accuracy".
+- **The extension is built and loadable, but we have not run it end to end on a
+  real site** — a side panel cannot host the on-device model, so it needs an API
+  key we did not have while building. What IS verified is the reader: the same
+  pruning code on real pages, with numbers in `docs/PORTING.md`.
