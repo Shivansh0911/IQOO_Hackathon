@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# secrets — the OpenRouter key is never committed (brief §3)
+.env
+.env.*
+!.env.example
+
+# WebLLM / MediaPipe model weights are large and cached, never versioned
+models/
+*.wasm.cache
+.webllm/
+.cache/
+
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,26 @@
+{
+  "name": "origo-loop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Origo Loop — an on-device UI agent that reads structure, not pixels.",
+  "type": "module",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "boundaries": "node scripts/check-boundaries.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "verify": "pnpm typecheck && pnpm lint && pnpm boundaries && pnpm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^20.14.10",
+    "eslint": "^9.12.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.8.1",
+    "vitest": "^2.1.2"
+  }
+}
