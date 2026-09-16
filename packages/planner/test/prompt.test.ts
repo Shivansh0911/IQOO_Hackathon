@@ -66,7 +66,21 @@ describe('the system prompt', () => {
 
   it('demands exactly one JSON object and no prose', () => {
     expect(SYSTEM_PROMPT).toMatch(/EXACTLY ONE JSON object/);
-    expect(SYSTEM_PROMPT).toMatch(/No prose\. No markdown\. No code fences\./);
+    expect(SYSTEM_PROMPT).toMatch(/No prose, no markdown, no code fences, no repetition/);
+  });
+
+  // Measured: the model echoed an ELEMENT back instead of writing an ACTION on
+  // two of five screens. The prompt now distinguishes input from output
+  // explicitly, in the first section and again immediately before generation.
+  it('distinguishes the INPUT element shape from the OUTPUT action shape', () => {
+    expect(SYSTEM_PROMPT).toMatch(/That is INPUT/);
+    expect(SYSTEM_PROMPT).toMatch(/That is your OUTPUT/);
+    expect(SYSTEM_PROMPT).toMatch(/NEVER reply with an element/);
+  });
+
+  it('says each field name appears once, because the model duplicated "reason"', () => {
+    expect(SYSTEM_PROMPT).toMatch(/Use each field name ONCE/);
+    expect(SYSTEM_PROMPT).toMatch(/appears exactly ONCE/);
   });
 
   describe('code-switching examples', () => {
@@ -79,10 +93,20 @@ describe('the system prompt', () => {
     });
 
     it('covers a tap, a type-then-tap, an assert and a Finish(Blocked)', () => {
-      expect(SYSTEM_PROMPT).toContain('{"type":"TypeText","node":1,"text":"pizza"');
-      expect(SYSTEM_PROMPT).toContain('{"type":"Tap","node":1,"reason":"open the Lotus Cafe listing"}');
-      expect(SYSTEM_PROMPT).toContain('{"type":"Assert","node":1,"expect":"<500"');
+      expect(SYSTEM_PROMPT).toContain('{"type":"TypeText","node":2,"text":"pizza"');
+      expect(SYSTEM_PROMPT).toContain('{"type":"Tap","node":3,"reason":"open the Lotus Cafe listing"}');
+      expect(SYSTEM_PROMPT).toContain('{"type":"Assert","node":2,"expect":"<500"');
+      expect(SYSTEM_PROMPT).toContain('{"type":"Scroll","node":0');
       expect(SYSTEM_PROMPT).toContain('"verdict":"Blocked"');
+    });
+
+    // Measured: with every example answering node 1, the model replied node 1 on
+    // all fifteen calls regardless of the screen. A few-shot block teaches the
+    // shape of the answer AND any constant in it.
+    it('varies the answer index across examples, so there is no constant to learn', () => {
+      const answered = [...SYSTEM_PROMPT.matchAll(/"node":(\d+)/g)].map((m) => Number(m[1]));
+      expect(answered.length).toBeGreaterThanOrEqual(4);
+      expect(new Set(answered).size).toBeGreaterThanOrEqual(3);
     });
 
     // The Gate 2 harness caught a 1B model copying an example's phrasing
@@ -189,8 +213,9 @@ describe('the user prompt', () => {
 });
 
 // MEASURED, with a real BPE tokenizer:
-//   system prompt   873 tokens   (role 56 · addressing 59 · actions 215 ·
-//                                 assert 86 · finishing 60 · examples 397)
+//   system prompt   ~960 tokens  (grew when the input/output distinction and a
+//                                 sixth example were added to fix a measured
+//                                 87% invalid-output rate — worth every token)
 //   screen          358-600      (Gate 1 measurements on real Tiffin)
 //   history+goal    ~100-200
 //   => typical ~1450, worst ~2100
@@ -203,7 +228,7 @@ describe('the user prompt', () => {
 describe('size budget', () => {
   it('keeps the whole prompt affordable for a 1B model on a typical screen', () => {
     const { estimatedTokens } = assemblePrompt(request(), estimateTokens);
-    expect(estimatedTokens).toBeLessThan(1400);
+    expect(estimatedTokens).toBeLessThan(1500);
   });
 
   it('stays bounded on our worst measured screen with full history', () => {
@@ -214,7 +239,7 @@ describe('size budget', () => {
       request({ screenJson: worstScreen, history: Array.from({ length: 12 }, (_, i) => step(i + 1)) }),
       estimateTokens,
     );
-    expect(estimatedTokens).toBeLessThan(2200);
+    expect(estimatedTokens).toBeLessThan(2400);
   });
 
   it('history compression is what keeps a long run bounded', () => {

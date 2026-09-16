@@ -17,10 +17,14 @@ import type { PlanRequest, StepSummary } from './planner.js';
 
 // ─── Section 1: who the model is and the single hard output rule ───────────
 export const SECTION_ROLE = `You drive a phone app to complete one goal.
-You see the screen as a JSON list of elements. You choose ONE action at a time.
+You are given a list of ELEMENTS. You reply with one ACTION.
+
+An ELEMENT looks like {"i":3,"role":"btn","text":"Add","clk":1}. That is INPUT.
+An ACTION looks like {"type":"Tap","node":3,"reason":"add the item"}. That is your OUTPUT.
+NEVER reply with an element. Your reply always starts with {"type":.
 
 Reply with EXACTLY ONE JSON object and nothing else.
-No prose. No markdown. No code fences. No explanation before or after.`;
+Use each field name ONCE. No prose, no markdown, no code fences, no repetition.`;
 
 // ─── Section 2: the addressing rule — the safety property, stated first ────
 export const SECTION_ADDRESSING = `ADDRESSING
@@ -35,16 +39,17 @@ export const SECTION_ACTIONS = `ACTIONS - use exactly one of these shapes
 {"type":"Scroll","node":<i>,"direction":"down"|"up"|"left"|"right","reason":"<why>"}
 {"type":"PressKey","key":"Back"|"Home"|"Enter","reason":"<why>"}
 {"type":"Wait","maxMs":<1-${MAX_WAIT_MS}>,"reason":"<why>"}
-{"type":"Assert","node":<i>,"expect":"<expectation>","reason":"<why>"}
+{"type":"Assert","node":<i>,"expect":"<rule>","reason":"<why>"}
 {"type":"Finish","verdict":"Pass"|"Fail"|"Blocked","reason":"<why>"}
 
 Tap only elements with "clk":1.
 TypeText only into elements with "ed":1.
 Scroll only elements with "scr":1.
-"reason" is short and in English. It is shown to the user.`;
+"reason" is short and in English, and appears exactly ONCE. It is shown to the user.
+"type" must be one of the seven words above. Never invent an action name.`;
 
 // ─── Section 4: the Assert grammar — evaluated in code, so it must be exact ─
-export const SECTION_ASSERT = `ASSERT - how to write "expect"
+export const SECTION_ASSERT = `ASSERT - the "expect" field. The key is spelled "expect".
 "Cart"        passes if the element's text contains "Cart" (case-insensitive)
 "!Sold out"   passes if the element's text does NOT contain "Sold out"
 "<500"        compares the first number in the element's text: also <= > >= =
@@ -74,23 +79,33 @@ Use Blocked when the goal cannot be done on this app.`;
 // had been given. The examples now use DISTINCT goals, DISTINCT vocabulary
 // (pizza and cafes, never biryani, which is the word our real goals use) and
 // non-zero indices, so there is nothing to copy that would happen to look right.
+//
+// SECOND MEASURED LESSON, same harness. After that fix every example still
+// ANSWERED with node 1, and the model duly replied node 1 on all fifteen calls
+// regardless of the screen. The answers now use 0, 2 and 3 as well, and the
+// correct target is deliberately NOT the first clickable element in two of them.
+// A few-shot block teaches the shape of the answer AND any constant in it.
 export const SECTION_EXAMPLES = `EXAMPLES
 
 GOAL: search for pizza
-ELEMENTS: [{"i":0,"role":"text","text":"FoodCo"},{"i":1,"role":"edit","desc":"Search for restaurants or dishes","ed":1},{"i":2,"role":"btn","text":"Cart","clk":1}]
-{"type":"TypeText","node":1,"text":"pizza","reason":"type the search term into the search field"}
+ELEMENTS: [{"i":0,"role":"text","text":"FoodCo"},{"i":1,"role":"btn","text":"Cart","clk":1},{"i":2,"role":"edit","desc":"Search for restaurants or dishes","ed":1}]
+{"type":"TypeText","node":2,"text":"pizza","reason":"type the search term into the search field"}
 
 GOAL: open the Lotus Cafe listing
-ELEMENTS: [{"i":0,"role":"edit","text":"cafe","ed":1},{"i":1,"role":"btn","text":"Lotus Cafe Coffee 4.2 20 min","clk":1},{"i":2,"role":"btn","text":"Rung Cafe Bakery 3.9","clk":1}]
-{"type":"Tap","node":1,"reason":"open the Lotus Cafe listing"}
+ELEMENTS: [{"i":0,"role":"edit","text":"cafe","ed":1},{"i":1,"role":"text","text":"3 places"},{"i":2,"role":"btn","text":"Rung Bakery 3.9","clk":1},{"i":3,"role":"btn","text":"Lotus Cafe Coffee 4.2 20 min","clk":1}]
+{"type":"Tap","node":3,"reason":"open the Lotus Cafe listing"}
 
 GOAL: Tiffin kholo aur check karo cart ka total 500 se kam hai
-ELEMENTS: [{"i":0,"role":"text","text":"Total"},{"i":1,"role":"text","text":"Rs 374"},{"i":2,"role":"btn","text":"Proceed to checkout","clk":1}]
-{"type":"Assert","node":1,"expect":"<500","reason":"check the total is under 500"}
+ELEMENTS: [{"i":0,"role":"text","text":"Total"},{"i":1,"role":"btn","text":"Proceed to checkout","clk":1},{"i":2,"role":"text","text":"Rs 374"}]
+{"type":"Assert","node":2,"expect":"<500","reason":"check the total is under 500"}
 
 GOAL: पहले रेस्टोरेंट से एक आइटम कार्ट में डालो
-ELEMENTS: [{"i":0,"role":"text","text":"Menu"},{"i":1,"role":"btn","text":"Add","clk":1},{"i":2,"role":"list","scr":1}]
-{"type":"Tap","node":1,"reason":"add the first item to the cart"}
+ELEMENTS: [{"i":0,"role":"text","text":"Menu"},{"i":1,"role":"list","scr":1},{"i":2,"role":"text","text":"Paneer Roll"},{"i":3,"role":"btn","text":"Add","clk":1}]
+{"type":"Tap","node":3,"reason":"add the first item to the cart"}
+
+GOAL: scroll down to see more results
+ELEMENTS: [{"i":0,"role":"list","scr":1},{"i":1,"role":"btn","text":"Cart","clk":1}]
+{"type":"Scroll","node":0,"direction":"down","reason":"reveal more of the list"}
 
 GOAL: book a flight to Delhi
 ELEMENTS: [{"i":0,"role":"edit","desc":"Search for restaurants or dishes","ed":1},{"i":1,"role":"btn","text":"Cart","clk":1}]
@@ -164,6 +179,32 @@ export function buildUserPrompt(request: PlanRequest): string {
   parts.push(`ELEMENT LIST (this is the whole screen; "i" is how you address each element)\n${request.screenJson}`);
   parts.push('Reply with one JSON object.');
   return parts.join('\n\n');
+}
+
+/**
+ * Summarises which indices can take which action, from the screen JSON.
+ * Pure and defensive: an unparseable screen simply produces no digest rather
+ * than failing a run.
+ */
+export function indexDigest(screenJson: string): string {
+  let nodes: { i: number; clk?: number; ed?: number; scr?: number }[];
+  try {
+    nodes = JSON.parse(screenJson) as typeof nodes;
+  } catch {
+    return '';
+  }
+  if (!Array.isArray(nodes) || nodes.length === 0) return '';
+
+  const list = (pick: (n: (typeof nodes)[number]) => boolean): string =>
+    nodes.filter(pick).map((n) => n.i).join(',') || 'none';
+
+  return [
+    `VALID NODE NUMBERS: 0 to ${nodes.length - 1}`,
+    `  can Tap: ${list((n) => n.clk === 1)}`,
+    `  can TypeText: ${list((n) => n.ed === 1)}`,
+    `  can Scroll: ${list((n) => n.scr === 1)}`,
+    '  Assert works on any node.',
+  ].join('\n');
 }
 
 export interface AssembledPrompt {
