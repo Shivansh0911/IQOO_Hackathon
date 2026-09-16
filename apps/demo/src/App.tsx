@@ -22,6 +22,7 @@ import { androidProfile } from '@origo/adapter-android';
 import { statusFacts, useConsole } from './run-store.js';
 import { StatusStrip } from './components/StatusStrip.js';
 import { StepLog } from './components/StepLog.js';
+import { ReportActions } from './components/ReportActions.js';
 import { DEMO_GOALS, scriptFor } from './demo-goals.js';
 import { ScriptedPlanner } from './scripted-planner.js';
 import './styles.css';
@@ -278,6 +279,8 @@ export function App() {
           failure={state.failure}
           running={state.running}
         />
+
+        {!state.running && <ReportActions events={state.events} />}
 
         <div className="panel">
           <div className="panel-title">settings</div>

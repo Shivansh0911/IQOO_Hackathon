@@ -68,6 +68,9 @@ importers:
       '@origo/planner':
         specifier: workspace:*
         version: link:../../packages/planner
+      '@origo/report':
+        specifier: workspace:*
+        version: link:../../packages/report
       '@tiffin/app':
         specifier: workspace:*
         version: link:../tiffin
@@ -136,6 +139,15 @@ importers:
 
   packages/planner:
     dependencies:
+      '@origo/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/report:
+    dependencies:
+      '@origo/agent':
+        specifier: workspace:*
+        version: link:../agent
       '@origo/core':
         specifier: workspace:*
         version: link:../core

@@ -1,0 +1,13 @@
+{
+  "name": "@origo/report",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "One self-contained HTML file. No external assets, so it survives being moved anywhere.",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@origo/core": "workspace:*",
+    "@origo/agent": "workspace:*"
+  }
+}

@@ -4,7 +4,11 @@
   "private": true,
   "type": "module",
   "description": "The split-pane demo: Tiffin on the left, the Origo console on the right.",
-  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "@origo/core": "workspace:*",
     "@origo/agent": "workspace:*",
@@ -14,7 +18,8 @@
     "@tiffin/app": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "zustand": "^4.5.5"
+    "zustand": "^4.5.5",
+    "@origo/report": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.3.11",

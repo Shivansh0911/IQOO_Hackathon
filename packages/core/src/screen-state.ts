@@ -78,8 +78,23 @@ export interface PromptNode {
   chk?: 0 | 1;
 }
 
-/** Longer text costs tokens and adds nothing; a label is never a paragraph. */
+/**
+ * Text budgets, in characters.
+ *
+ * Two of them, because interactive nodes are a different kind of thing. A plain
+ * text node says one thing and 60 characters is generous. An interactive node
+ * AGGREGATES its children — a restaurant card is a name, a cuisine list, a
+ * rating, a delivery time and a price in one control — and 60 characters cut it
+ * off mid-name.
+ *
+ * That was not a cosmetic problem. A run asserting on a card's rating failed
+ * with "no number to compare" because the rating had been truncated away: the
+ * verdict was right by accident and wrong in its reasoning, which is the worst
+ * kind of passing test. The extra 40 characters cost roughly 15 tokens per card
+ * and buy back every field the model is expected to reason about.
+ */
 export const MAX_TEXT_CHARS = 60;
+export const MAX_TEXT_CHARS_INTERACTIVE = 100;
 
 export function truncate(value: string, max = MAX_TEXT_CHARS): string {
   const clean = value.replace(/\s+/g, ' ').trim();
@@ -94,8 +109,9 @@ export function truncate(value: string, max = MAX_TEXT_CHARS): string {
 export function toPromptNodes(state: ScreenState): PromptNode[] {
   return state.nodes.map((n) => {
     const p: PromptNode = { i: n.index, role: n.role };
-    const text = truncate(n.text);
-    const desc = truncate(n.desc);
+    const budget = n.clickable || n.editable ? MAX_TEXT_CHARS_INTERACTIVE : MAX_TEXT_CHARS;
+    const text = truncate(n.text, budget);
+    const desc = truncate(n.desc, budget);
     if (text) p.text = text;
     // `desc` only earns its tokens when it says something the text does not.
     if (desc && desc.toLowerCase() !== text.toLowerCase()) p.desc = desc;

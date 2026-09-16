@@ -13,7 +13,7 @@
  */
 
 import type { Bounds, Role, UiNode } from './screen-state.js';
-import { MAX_NODES, truncate } from './screen-state.js';
+import { MAX_NODES, MAX_TEXT_CHARS, MAX_TEXT_CHARS_INTERACTIVE, truncate } from './screen-state.js';
 
 /**
  * Drop reasons, in the order they are evaluated. First match wins, and the
@@ -221,11 +221,14 @@ export function pruneAndRank(
   ordered.forEach((c, index) => {
     fates.set(c.id, 'kept');
     indexToCandidateId.push(c.id);
+    // Interactive nodes get the larger budget: they aggregate several fields
+    // and cutting them short hides values the model is asked to assert on.
+    const budget = c.clickable || c.editable ? MAX_TEXT_CHARS_INTERACTIVE : MAX_TEXT_CHARS;
     nodes.push({
       index,
       role: c.role,
-      text: truncate(c.text),
-      desc: truncate(c.desc),
+      text: truncate(c.text, budget),
+      desc: truncate(c.desc, budget),
       bounds: c.bounds,
       clickable: c.clickable,
       editable: c.editable,

@@ -81,5 +81,30 @@ if (summary.insets.length) {
 console.log(`\nVERDICT: ${summary.verdict} — ${summary.reason}`);
 console.log(`         ${summary.meta}\n`);
 
+// Capture the report the run produced, so we can look at the real artefact.
+if (process.env.ORIGO_REPORT) {
+  const html = await page.evaluate(async () => {
+    const button = [...document.querySelectorAll('button')].find((b) => b.textContent?.includes('Download HTML'));
+    if (!button) return null;
+    // Intercept the blob rather than downloading it, so the script can read it.
+    const created = [];
+    const original = URL.createObjectURL;
+    URL.createObjectURL = (blob) => {
+      created.push(blob);
+      return original.call(URL, blob);
+    };
+    button.click();
+    URL.createObjectURL = original;
+    return created[0] ? await created[0].text() : null;
+  });
+  if (html) {
+    const { writeFile } = await import('node:fs/promises');
+    await writeFile(process.env.ORIGO_REPORT, html, 'utf8');
+    console.log(`report written to ${process.env.ORIGO_REPORT} (${html.length} bytes)`);
+  } else {
+    console.log('no report button found');
+  }
+}
+
 await browser.close();
 server.close();
