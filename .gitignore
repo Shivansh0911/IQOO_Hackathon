@@ -27,3 +27,6 @@ Thumbs.db
 
 # gate 2 measurement: a real browser profile holding the cached model weights
 .webgpu-profile/
+
+# a persistent browser profile holding the cached model for demo verification
+.demo-profile/

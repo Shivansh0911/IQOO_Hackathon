@@ -1,0 +1,27 @@
+# Netlify, as the alternative to Vercel. Either works; see docs/DEPLOY.md.
+
+[build]
+  command = "pnpm install --frozen-lockfile && npx vite build apps/demo"
+  publish = "apps/demo/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_VERSION = "9"
+
+# COOP isolates the browsing context. COEP is DELIBERATELY ABSENT: WebGPU does
+# not require cross-origin isolation, and COEP=require-corp blocks the
+# cross-origin fetch of the model weights, which kills the on-device tier in
+# production while localhost looks fine. Measured, not assumed.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+
+# Hashed filenames, so they can be cached forever. The model weights are cached
+# separately by the browser's Cache API, per origin.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

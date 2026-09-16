@@ -23,7 +23,7 @@ import {
 } from '@origo/core';
 import type { Planner, StepSummary } from '@origo/planner';
 import type { RunEvent, ScreenFacts } from './events.js';
-import { AssertLedger, DEFAULT_LIMITS, RetryBudget, StuckDetector } from './guardrails.js';
+import { AssertLedger, DEFAULT_LIMITS, RepeatDetector, RetryBudget, StuckDetector } from './guardrails.js';
 
 export interface RunLimits {
   readonly maxSteps: number;
@@ -98,6 +98,7 @@ export async function* run(goal: string, deps: RunnerDeps, signal: AbortSignal):
 
   const retries = new RetryBudget(limits.maxRetries);
   const stuck = new StuckDetector();
+  const repeats = new RepeatDetector();
   const asserts = new AssertLedger();
   const history: StepSummary[] = [];
 
@@ -234,6 +235,34 @@ export async function* run(goal: string, deps: RunnerDeps, signal: AbortSignal):
     reflection = undefined;
 
     const { action, target, adjustments, requiresConfirmation, destructiveMatch } = validated.value;
+
+    // Action-sameness, which is a different signal from screen-sameness. An
+    // Assert loop passes every time and never moves the screen, so only this
+    // catches it.
+    const signature = `${formatAction(action)}@${snapshot.hash}`;
+    const repeatVerdict = action.type === 'Finish' ? 'moving' : repeats.observe(signature);
+    if (repeatVerdict !== 'moving') {
+      yield {
+        type: 'Stuck',
+        step,
+        hash: snapshot.hash,
+        repeats: repeats.count,
+        terminating: repeatVerdict === 'terminate',
+        at: now(),
+      };
+      if (repeatVerdict === 'terminate') {
+        yield finished(
+          'Blocked',
+          `proposed ${formatAction(action)} ${repeats.count} times in a row without making progress`,
+        );
+        return;
+      }
+      // Reflect BEFORE executing it again: re-running an identical action on an
+      // identical screen cannot produce a different outcome.
+      reflection = repeats.describe(formatAction(action));
+      step -= 1;
+      continue;
+    }
     yield {
       type: 'ActionProposed',
       step,

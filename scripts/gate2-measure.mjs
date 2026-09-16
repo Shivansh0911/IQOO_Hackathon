@@ -28,6 +28,14 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
 
 const callsPerScreen = Number(process.argv[2] ?? 5);
 const offline = process.argv.includes('--offline');
+/**
+ * The honest offline test: load the model WHILE ONLINE, then cut the network and
+ * run. That is the claim we actually make — "works with the network off once
+ * cached" — as opposed to --offline, which cuts the network first and therefore
+ * also tests whether the app SHELL is cached (it is not: there is no service
+ * worker, so the lazily-imported WebLLM chunk cannot be fetched).
+ */
+const warmThenOffline = process.argv.includes('--warm-then-offline');
 
 /**
  * Cross-origin isolation mode, and a finding worth recording.
@@ -179,6 +187,13 @@ async function main() {
       await page.waitForTimeout(300);
     },
   };
+
+  if (warmThenOffline) {
+    await context.setOffline(true);
+    console.log('\nNETWORK: cut AFTER the model loaded. Everything from here runs offline.');
+    const stillOnline = await page.evaluate(() => navigator.onLine);
+    console.log(`navigator.onLine now reports: ${stillOnline}`);
+  }
 
   const attempts = [];
   for (const testCase of PLAN_CASES) {

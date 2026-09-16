@@ -221,19 +221,24 @@ describe('guardrail: the step ceiling', () => {
     expect(finished?.steps).toBe(25);
   });
 
-  it('a static screen hits stuck detection first, which is the better answer', async () => {
+  it('a repeated action is caught long before the ceiling, which is the better answer', async () => {
     const wait: Action = { type: 'Wait', maxMs: 1, reason: 'waiting' };
     const { deps } = harness(Array.from({ length: 60 }, () => wait), {}, [SEARCH]);
     const finished = find(await collect('goal', deps), 'Finished');
-    expect(finished?.reason).toMatch(/did not change across/);
+    expect(finished?.reason).toMatch(/times in a row without making progress/);
+    expect(finished?.steps).toBeLessThan(5);
   });
 });
 
-describe('guardrail: stuck detection', () => {
-  const wait: Action = { type: 'Wait', maxMs: 10, reason: 'waiting for something to happen' };
+describe('guardrail: stuck detection (screen-sameness)', () => {
+  // DIFFERENT actions each time, so only screen-sameness can catch this. If the
+  // actions were identical the repeat detector would fire first — they are two
+  // separate signals and each needs its own test.
+  const varyingWaits = (n: number): Action[] =>
+    Array.from({ length: n }, (_, i) => ({ type: 'Wait', maxMs: 10 + i, reason: `waiting ${i}` }));
 
   it('injects a reflection turn on the third identical screen', async () => {
-    const { deps } = harness([wait, wait, wait, finishPass], {}, [SEARCH]);
+    const { deps } = harness([...varyingWaits(3), finishPass], {}, [SEARCH]);
     const events = await collect('goal', deps);
     const stuck = events.filter((e) => e.type === 'Stuck');
     expect(stuck.length).toBeGreaterThanOrEqual(1);
@@ -241,7 +246,7 @@ describe('guardrail: stuck detection', () => {
   });
 
   it('terminates on the fourth, rather than burning the step budget', async () => {
-    const { deps } = harness(Array.from({ length: 10 }, () => wait), {}, [SEARCH]);
+    const { deps } = harness(varyingWaits(10), {}, [SEARCH]);
     const events = await collect('goal', deps);
     expect(events.some((e) => e.type === 'Stuck' && e.terminating)).toBe(true);
     expect(find(events, 'Finished')?.reason).toMatch(/did not change across/);
@@ -250,6 +255,44 @@ describe('guardrail: stuck detection', () => {
   it('does not fire while the screen keeps changing', async () => {
     const { deps } = harness([tap, assertUnder500, finishPass]);
     expect((await collect('goal', deps)).some((e) => e.type === 'Stuck')).toBe(false);
+  });
+});
+
+describe('guardrail: repeated-action detection (action-sameness)', () => {
+  // MEASURED FAILURE this exists for: a real run asserted the same node 25 times
+  // in a row, every one passing, never finishing — and the screen-hash detector
+  // stayed silent the whole way to the ceiling because an Assert does not move
+  // the screen (D10).
+  it('catches an Assert loop that passes every time and never finishes', async () => {
+    const { deps } = harness(Array.from({ length: 10 }, () => assertUnder500), {}, [CART]);
+    const events = await collect('goal', deps);
+    const finished = find(events, 'Finished');
+    expect(finished?.verdict).toBe('Blocked');
+    expect(finished?.reason).toMatch(/times in a row without making progress/);
+    // It must end in a handful of steps, not at the 25-action ceiling.
+    expect(finished?.steps).toBeLessThan(5);
+  });
+
+  it('reflects once before terminating, so the model gets a chance to change', async () => {
+    const events = await collect('goal', harness(Array.from({ length: 10 }, () => assertUnder500), {}, [CART]).deps);
+    const stuck = events.filter((e) => e.type === 'Stuck');
+    expect(stuck[0]?.terminating).toBe(false);
+    expect(stuck.at(-1)?.terminating).toBe(true);
+  });
+
+  it('does not fire when the same action lands on a DIFFERENT screen', async () => {
+    // Tapping node 0 twice is fine if the screen moved in between.
+    const PING = screen('ping', [node({ index: 0, role: 'btn', text: 'Next', clickable: true })]);
+    const PONG = screen('pong', [node({ index: 0, role: 'btn', text: 'Back', clickable: true })]);
+    const tapZero: Action = { type: 'Tap', node: 0, reason: 'keep going' };
+    const { deps } = harness([tapZero, tapZero, tapZero, finishPass], {}, [PING, PONG], true);
+    expect((await collect('goal', deps)).some((e) => e.type === 'Stuck')).toBe(false);
+  });
+
+  it('never fires on Finish, which is allowed to be the same as itself', async () => {
+    const { deps } = harness([tap, assertUnder500, finishPass]);
+    const events = await collect('goal', deps);
+    expect(find(events, 'Finished')?.verdict).toBe('Pass');
   });
 });
 

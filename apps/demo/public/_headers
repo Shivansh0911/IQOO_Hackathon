@@ -1,0 +1,12 @@
+# Cloudflare Pages / Netlify static header file. Same values as netlify.toml,
+# kept so a drag-and-drop deploy of apps/demo/dist also gets the right headers.
+#
+# COEP is deliberately absent — require-corp blocks the model-weight fetch and
+# silently disables the on-device tier in production. See docs/DEPLOY.md.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

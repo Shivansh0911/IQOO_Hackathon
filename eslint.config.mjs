@@ -193,6 +193,7 @@ export default tseslint.config(
         // document/navigator/URL run INSIDE page.evaluate, not in Node.
         document: 'readonly',
         navigator: 'readonly',
+        window: 'readonly',
         URL: 'readonly',
       },
     },

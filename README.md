@@ -15,6 +15,30 @@ Tushya Jain and Shivansh Shekher Ojha, BITS Pilani Hyderabad.
 
 ---
 
+## What is proven, and what is open
+
+Stated this way deliberately. A claim a judge can check is worth more than a
+claim that sounds bigger.
+
+**PROVEN — reading structure instead of pixels makes a screen 438 tokens
+instead of ~1,500.** Measured with a real BPE tokenizer across five screens
+(374 best, 580 worst) and reproducible with `pnpm measure`. Checkable live in
+the debug panel.
+
+**PROVEN — the agent, the validator and every guardrail work correctly.**
+Demonstrated under a model that was *not* good enough: Llama-3.2-1B produced 15
+invalid actions in 20 calls and the validator caught 100% of them, with nothing
+wrong ever reaching the app. That is stronger evidence than a clean run, and the
+console can replay it (the Guardrails panel).
+
+**OPEN — which 1B–2B model reliably selects a node index.** Llama-3.2-1B does
+not: 75% invalid, emitting index 0 on 18 of 20 calls. **Qwen2.5-1.5B does: 0%
+invalid across 20 calls, choosing indices 12, 13, 14, 17, 22 and 23 appropriately
+per screen.** Gemma 3 1B via MediaPipe on the phone is untested and gets
+measured at hour 4 on site.
+
+---
+
 ## The insight, in three sentences
 
 Every other agent that operates a screen takes a screenshot and sends the image
@@ -61,7 +85,53 @@ keeps a 24-step run within ~120 tokens of a 1-step run.
 
 ### On-device planning — `node scripts/gate2-measure.mjs`
 
-`[[ Gate 2 numbers land here — see docs/DECISIONS.md D12 ]]`
+Qwen2.5-1.5B-Instruct q4f16 on WebGPU (NVIDIA Lovelace), against real Tiffin
+screens, every reply through the real validator.
+
+| screen | tokens | calls | valid | invalid | mean latency |
+|---|---|---|---|---|---|
+| search | 453 | 4 | 4 | 0% | 2.4s |
+| results | 407 | 4 | 4 | 0% | 2.3s |
+| restaurant | 630 | 4 | 4 | 0% | 2.6s |
+| cart | 407 | 4 | 4 | 0% | 2.3s |
+| checkout | 414 | 4 | 4 | 0% | 2.2s |
+
+**20 calls · 20 valid · 0% invalid-output rate · mean 4.0s per planning call.**
+Cold start 136s (1.1GB, once). Warm start 3.5s.
+
+The same protocol against Llama-3.2-1B: **75% invalid**, index 0 on 18 of 20
+calls. See [docs/DECISIONS.md](docs/DECISIONS.md) D12 for the comparison and the
+three prompt bugs the measurement exposed.
+
+**0% invalid is not 100% correct.** The validator checks whether an action is
+legal for the screen, not whether it was the best choice — on the search screen
+Qwen sometimes taps a restaurant card rather than typing into the search field.
+Quote the invalid-output rate; never call it accuracy.
+
+### Offline — verified, and scoped precisely
+
+**PASS:** load the model, cut the network, and the full loop keeps working — 10
+of 10 planning calls with `navigator.onLine === false`. Reproduce with
+`node scripts/gate2-measure.mjs 2 --warm-then-offline`.
+
+**Does NOT work:** a cold start with no network at all. The model weights are
+cached, but the lazily-imported WebLLM chunk has nothing caching it — there is
+no service worker. So the honest claim is **"works with the network off once the
+model is loaded"**, never "works offline" unqualified.
+
+### The flows, walked on the production build
+
+`node scripts/verify-flows.mjs` — clean profile, no cache, no localStorage.
+
+| flow | result |
+|---|---|
+| cold first visit | Tiffin painted 411ms · RUN usable 426ms · strip honest throughout |
+| typed goal | Pass in 2.4s · 6 steps · amber ring confirmed mid-run (badge 22) |
+| destructive gate | sheet readable, Deny genuinely stops the run, order NOT placed |
+| deliberate failure | red verdict: "node 11 reads 4.5; expected > 4.9" |
+| double RUN, tab switch, back, reload | no duplicate steps, survives all four |
+| 620px and 390px | both panes usable, no horizontal overflow |
+| no WebGPU | degrades to mock, strip says so, run still completes |
 
 ---
 

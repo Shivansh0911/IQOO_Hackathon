@@ -245,7 +245,15 @@ export function App() {
     useConsole.getState().clear();
     setSelectionNote(null);
     setDemoReady(false);
-    if (gpu?.available) {
+    // Probe HERE rather than reading the `gpu` state.
+    //
+    // MEASURED BUG: the probe is async, and a presenter who clicks Demo mode
+    // within the first second finds `gpu` still null — so this skipped the
+    // preload, reported "Demo ready" in 0.4s, and the run then went to the mock
+    // tier. It was honest (the strip said mock) and completely wrong.
+    const probe = await local.readiness();
+    setReadiness(probe);
+    if (probe.state !== 'unavailable') {
       const result = await local.preload();
       if (!result.ok) {
         setSelectionNote(`${result.error.message} The cloud and mock tiers still work.`);
@@ -254,7 +262,7 @@ export function App() {
       setReadiness(await local.readiness());
     }
     setDemoReady(true);
-  }, [gpu?.available, local]);
+  }, [local]);
 
   const resetAll = useCallback(() => {
     useTiffin.getState().reset();

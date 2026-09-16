@@ -104,6 +104,49 @@ export class StuckDetector {
 }
 
 /**
+ * Catches a model that proposes the SAME action over and over.
+ *
+ * MEASURED FAILURE. Stuck detection deliberately ignores repeats that follow an
+ * Assert, because observing the same screen twice is not being stuck (D10). A
+ * real run then did this: Qwen asserted `Assert(14, "<500")` twenty-five times
+ * in a row, each one passing, never emitting Finish — and the screen-hash
+ * detector stayed silent the whole way to the step ceiling. Two minutes of a
+ * judge's time watching a green tick repeat.
+ *
+ * Screen-sameness and action-sameness are different signals and both are needed.
+ * This one is action-sameness, and it counts every action type including Assert.
+ */
+export class RepeatDetector {
+  private last: string | null = null;
+  private repeats = 1;
+
+  constructor(
+    private readonly reflectAt: number = 2,
+    private readonly terminateAt: number = 3,
+  ) {}
+
+  get count(): number {
+    return this.repeats;
+  }
+
+  /** @param signature formatted action plus the hash of the screen it was chosen from. */
+  observe(signature: string): StuckVerdict {
+    if (signature === this.last) this.repeats += 1;
+    else {
+      this.last = signature;
+      this.repeats = 1;
+    }
+    if (this.repeats >= this.terminateAt) return 'terminate';
+    if (this.repeats >= this.reflectAt) return 'reflect';
+    return 'moving';
+  }
+
+  describe(action: string): string {
+    return `You have proposed ${action} ${this.repeats} times in a row on the same screen. Repeating it will not help.`;
+  }
+}
+
+/**
  * Tracks assertions for the Finish(Pass) rule.
  *
  * The downgrade itself lives in the validator — it is policy, not bookkeeping —

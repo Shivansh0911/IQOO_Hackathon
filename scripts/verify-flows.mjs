@@ -293,7 +293,7 @@ async function main() {
 
   // ── FLOW 5 · A FAILING RUN ────────────────────────────────────────────
   {
-    const { context, page, errors } = await freshPage(browser);
+    const { context, page, errors: flow5Errors } = await freshPage(browser);
     await page.goto(url);
     await page.waitForSelector('.tiffin');
     const t0 = Date.now();
@@ -311,7 +311,7 @@ async function main() {
       'FLOW 5 failing run',
       `${v.verdict} (${v.klass.includes('fail') ? 'red' : 'NOT RED'}) · ${v.reason}\n    assert line: ${v.assertLine.slice(0, 100)}`,
       Date.now() - t0,
-      v.klass.includes('fail') ? '' : 'verdict is not styled as a failure',
+      v.klass.includes('fail') ? (flow5Errors.length ? flow5Errors.join(' | ') : '') : 'verdict is not styled as a failure',
     );
     await context.close();
   }
@@ -421,7 +421,7 @@ async function main() {
   });
 
   // ── FLOW 8 · NO WEBGPU ────────────────────────────────────────────────
-  await flow('FLOW 8 no WebGPU', 'flow8', async (page, _context, errors) => {
+  await flow('FLOW 8 no WebGPU', 'flow8', async (page) => {
     await page.goto(url);
     await page.waitForSelector('.tiffin');
     const hasGpu = await page.evaluate(() => 'gpu' in navigator);
