@@ -36,6 +36,25 @@ token count.
 
 ---
 
+## WHICH TIER TO RECORD ON — read this first
+
+**Record runs A, B and C on the scripted (mock) tier, and say "scripted" if
+asked.** Verified: all three complete correctly, every time, in 1.5–2.5s. The
+status strip says `PLANNER mock · MODEL scripted` throughout, so nothing is
+misrepresented — the loop, the reader, the validator, the guardrails and the
+executor are all the real production path; only the *plan* is fixed.
+
+**Do NOT record a multi-step run on the local tier.** Measured: Qwen2.5-1.5B
+produces 0% invalid single actions but does not yet complete a multi-step goal —
+it loops asserting and never finishes, and the repeated-action guard ends the run
+as Blocked at ~21s. That is the guardrail working correctly and it is not a demo.
+
+**Do show the local tier** — press "Demo mode", let it load, and hold on the
+strip reading `PLANNER local · on-device · MODEL Qwen2.5-1.5B-Instruct-q4f16_1-MLC`.
+That single frame is the on-device claim, and it is true.
+
+---
+
 ## 0:50–2:00 · Three live runs
 
 ### Run A — 0:50–1:20 — the clean one *(demo goal 1 + 2)*
@@ -72,6 +91,18 @@ token count.
 - **Narration:** "It checked, the expectation didn't hold, and it says so — with
   the number it actually read. That report is one self-contained file: no
   stylesheet, no script, nothing external. That's how it comes off the phone."
+
+### Run E — 1:40–2:00 — the Guardrails panel *(the strongest 20 seconds)*
+
+- **Setup:** scroll the console to the "guardrails" panel, press "Show the
+  evidence".
+- **What it shows:** a real captured run where the on-device model was NOT good
+  enough — 15 of 20 replies rejected, with the raw model text, the specific
+  validator message, and the retry.
+- **Narration:** "This is a real recorded run from a model that couldn't do the
+  job. Fifteen bad outputs out of twenty. The validator caught every one, and
+  nothing reached the app. Every team will show you their happy path — this is
+  what ours does when the model is wrong."
 
 ### Run D — optional, if the extension is ready
 
