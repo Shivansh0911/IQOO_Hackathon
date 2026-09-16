@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "eslint .",
     "boundaries": "node scripts/check-boundaries.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "node scripts/typecheck.mjs",
     "test": "vitest run --passWithNoTests",
     "verify": "pnpm typecheck && pnpm lint && pnpm boundaries && pnpm test"
   },
