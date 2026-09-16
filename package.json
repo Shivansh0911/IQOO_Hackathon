@@ -17,7 +17,9 @@
     "dev:tiffin": "vite apps/tiffin",
     "dev:debug": "vite tooling/debug",
     "measure": "pnpm --filter @tiffin/app build && node scripts/measure-screens.mjs",
-    "shot": "node scripts/screenshot.mjs"
+    "shot": "node scripts/screenshot.mjs",
+    "dev": "vite apps/demo",
+    "e2e": "node scripts/e2e-demo.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
