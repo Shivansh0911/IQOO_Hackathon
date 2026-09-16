@@ -84,6 +84,12 @@ export interface ValidationContext {
   readonly screen: ScreenState;
   /** How many Asserts have passed so far this run. Drives the Finish(Pass) downgrade. */
   readonly passedAsserts: number;
+  /**
+   * How many Asserts have FAILED so far. A run that checked something and found
+   * it wrong is a Fail, not a Blocked — and small models will happily assert,
+   * watch the assertion fail, and finish Pass anyway.
+   */
+  readonly failedAsserts?: number;
   readonly destructivePatterns?: readonly string[];
 }
 
@@ -258,10 +264,25 @@ export function applySemantics(
       break;
 
     case 'Finish':
-      // THE ASSERT RULE. A run that verified nothing is a walkthrough, not a
-      // test. Enforced here rather than in the prompt, because a prompt is a
-      // request and this is a guarantee.
-      if (action.verdict === 'Pass' && ctx.passedAsserts === 0) {
+      // THE ASSERT RULE, in one place. Enforced here rather than in the prompt,
+      // because a prompt is a request and this is a guarantee.
+      //
+      // Order matters, and it is the order a tester would use:
+      //   checked something and it was wrong  -> Fail   (the informative answer)
+      //   checked nothing at all              -> Blocked (a walkthrough, not a test)
+      if (action.verdict === 'Pass' && (ctx.failedAsserts ?? 0) > 0) {
+        adjustments.push({
+          field: 'verdict',
+          from: 'Pass',
+          to: 'Fail',
+          why: `an expectation was checked and did not hold (${ctx.failedAsserts} failed)`,
+        });
+        action = {
+          ...action,
+          verdict: 'Fail',
+          reason: `an expectation was checked and did not hold (${ctx.failedAsserts} failed)`,
+        };
+      } else if (action.verdict === 'Pass' && ctx.passedAsserts === 0) {
         adjustments.push({
           field: 'verdict',
           from: 'Pass',

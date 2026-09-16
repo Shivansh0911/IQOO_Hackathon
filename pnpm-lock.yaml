@@ -70,6 +70,15 @@ importers:
         specifier: ^5.4.8
         version: 5.4.21(@types/node@20.19.43)
 
+  packages/agent:
+    dependencies:
+      '@origo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@origo/planner':
+        specifier: workspace:*
+        version: link:../planner
+
   packages/core:
     dependencies:
       zod:

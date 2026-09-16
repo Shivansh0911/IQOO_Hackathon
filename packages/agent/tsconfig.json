@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": [],
+    "paths": {
+      "@origo/core": ["../../packages/core/src/index.ts"],
+      "@origo/planner": ["../../packages/planner/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*"]
+}

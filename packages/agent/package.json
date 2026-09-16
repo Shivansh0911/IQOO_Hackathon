@@ -1,0 +1,13 @@
+{
+  "name": "@origo/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The loop and every guardrail. Platform-agnostic: it talks to ports, never to a DOM.",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@origo/core": "workspace:*",
+    "@origo/planner": "workspace:*"
+  }
+}
