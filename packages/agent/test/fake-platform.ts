@@ -23,9 +23,10 @@ import type {
   SettleOptions,
   SettleOutcome,
   SettleStrategy,
+  PlatformProfile,
   UiNode,
 } from '@origo/core';
-import { err, estimateTokens, hashScreenState, ok, toPromptJson } from '@origo/core';
+import { defineProfile, err, estimateTokens, hashScreenState, ok, toPromptJson } from '@origo/core';
 
 export function node(partial: Partial<UiNode> & { index: number }): UiNode {
   return {
@@ -149,4 +150,34 @@ export class InstantSettle implements SettleStrategy {
     if (!read.ok) return read;
     return ok({ snapshot: read.value, settled: true, waitedMs: 0, polls: 1 });
   }
+}
+
+/**
+ * A PlatformProfile with no browser in it.
+ *
+ * This is the object the "the port is proven" test drives the whole agent
+ * through. If the loop, the validator and the guardrails all work against a
+ * profile whose reader and executor touch no platform API, then the seam is
+ * real and adding Android is adding one object.
+ */
+export function fakeProfile(screens: readonly ScreenState[], cycling = false): PlatformProfile {
+  const reader = new FakeReader(screens, cycling);
+  return defineProfile({
+    id: 'fake',
+    label: 'fake',
+    reader,
+    executor: new FakeExecutor(reader),
+    settleStrategy: new InstantSettle(),
+    capabilities: {
+      screenshots: false,
+      voice: false,
+      backKey: false,
+      multiWindow: false,
+      appSwitching: false,
+      crossOriginLimited: false,
+    },
+    limits: { maxNodes: 40, maxSteps: 25, settleTimeoutMs: 2500 },
+    implemented: true,
+    detail: 'A scripted platform used to prove the agent needs no browser.',
+  });
 }

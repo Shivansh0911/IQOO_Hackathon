@@ -23,6 +23,15 @@ import tseslint from 'typescript-eslint';
 export const ZONES = {
   portable: ['packages/**/*.{ts,tsx}', 'tooling/boundary-fixtures/core/**/*.{ts,tsx}'],
   tiffin: ['apps/tiffin/**/*.{ts,tsx}', 'tooling/boundary-fixtures/tiffin/**/*.{ts,tsx}'],
+  /**
+   * RULE C applies to everything that is NOT allowed to name an adapter.
+   * The allowed list is small and explicit: the adapters themselves, the two
+   * apps that compose a profile at startup, and the dev tooling.
+   */
+  profileConsumers: [
+    'packages/**/*.{ts,tsx}',
+    'tooling/boundary-fixtures/profile/**/*.{ts,tsx}',
+  ],
 };
 
 /** Browser/DOM globals that must never appear in the portable zone. */
@@ -134,6 +143,35 @@ export default tseslint.config(
         {
           selector: 'Literal[value=/^origo/i]',
           message: 'RULE B: Tiffin must not name Origo, not even in a string. It is a separate product by a separate team.',
+        },
+      ],
+    },
+  },
+
+  {
+    // ─── RULE C ─────────────────────────────────────────────────────────────
+    //
+    // Reach the platform through PlatformProfile, never through an adapter.
+    // With three platforms the seam has to be machine-enforced: the difference
+    // between having an abstraction and having a habit is whether the build
+    // fails when someone reaches past it.
+    //
+    // apps/demo, apps/extension and adapters/** are exempt — something has to
+    // construct the profile, and that is their job.
+    name: 'origo/reach-the-platform-through-the-profile',
+    files: ZONES.profileConsumers,
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            ...WEB_IMPORT_PATTERNS,
+            {
+              group: ['@origo/adapter-*', '**/adapters/*/**'],
+              message:
+                'RULE C: import PlatformProfile from @origo/core, not an adapter. Only apps/demo, apps/extension and adapters/** may name an adapter directly — everything else reads its platform facts from the profile.',
+            },
+          ],
         },
       ],
     },

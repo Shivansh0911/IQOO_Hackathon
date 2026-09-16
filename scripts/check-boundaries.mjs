@@ -42,6 +42,16 @@ const CASES = [
     expect: [],
     why: 'RULE B — an ordinary Tiffin component stays clean',
   },
+  {
+    file: 'tooling/boundary-fixtures/profile/violation-adapter-import.ts',
+    expect: ['no-restricted-imports'],
+    why: 'RULE C — a portable package reaching past the profile to an adapter',
+  },
+  {
+    file: 'tooling/boundary-fixtures/profile/clean.ts',
+    expect: [],
+    why: 'RULE C — reading platform facts from PlatformProfile stays clean',
+  },
 ];
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -69,7 +79,7 @@ for (const c of CASES) {
 
 console.log(
   failures === 0
-    ? `\nboundaries: ${CASES.length}/${CASES.length} ok — RULE A and RULE B are enforced.`
+    ? `\nboundaries: ${CASES.length}/${CASES.length} ok — RULES A, B and C are enforced.`
     : `\nboundaries: ${failures} of ${CASES.length} case(s) failed. An architectural guardrail is not holding.`,
 );
 

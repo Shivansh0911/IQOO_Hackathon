@@ -1,0 +1,10 @@
+{
+  "name": "@origo/adapter-android",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Android profile. Stubs today, selectable today — which is how we know the seam is real.",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@origo/core": "workspace:*" }
+}

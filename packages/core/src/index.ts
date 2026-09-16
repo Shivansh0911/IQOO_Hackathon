@@ -6,3 +6,4 @@ export * from './action.js';
 export * from './expectation.js';
 export * from './validation.js';
 export * from './ports.js';
+export * from './platform.js';

@@ -10,3 +10,5 @@ export { DomActionExecutor } from './dom-executor.js';
 export type { DomExecutorOptions } from './dom-executor.js';
 export { HashSettleStrategy, DEFAULT_SETTLE } from './settle.js';
 export { mapRole } from './role-map.js';
+export { createWebProfile } from './profile.js';
+export type { WebProfileOptions } from './profile.js';

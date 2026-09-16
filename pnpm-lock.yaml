@@ -39,6 +39,12 @@ importers:
         specifier: ^2.1.2
         version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)
 
+  adapters/android:
+    dependencies:
+      '@origo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+
   adapters/web:
     dependencies:
       '@origo/core':
