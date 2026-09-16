@@ -365,3 +365,34 @@ describe('the port is proven, not promised', () => {
     expect(find(events, 'Finished')).toMatchObject({ verdict: 'Pass', passedAsserts: 1, steps: 3 });
   });
 });
+
+describe('guardrail: the wall-clock ceiling', () => {
+  // The step ceiling bounds ACTIONS, not TIME. A slow planner could sit at 25
+  // steps for many minutes with the UI looking alive. Measured on an integrated
+  // GPU: 41s per call, which is 17 minutes for a full run.
+  it('ends the run when it has taken too long, whatever the step count', async () => {
+    let clock = 1_700_000_000_000;
+    const wait: Action = { type: 'Wait', maxMs: 1, reason: 'slow' };
+    const { deps } = harness(
+      Array.from({ length: 30 }, () => wait),
+      {
+        limits: { maxRunMs: 5000 },
+        // Every call to now() advances the clock by two seconds.
+        now: () => {
+          clock += 2000;
+          return clock;
+        },
+      },
+      [SEARCH],
+    );
+    const finished = find(await collect('goal', deps), 'Finished');
+    expect(finished?.verdict).toBe('Blocked');
+    expect(finished?.reason).toMatch(/past the 5s ceiling/);
+  });
+
+  it('does not fire on a normal run', async () => {
+    const { deps } = harness([tap, assertUnder500, finishPass]);
+    const finished = find(await collect('goal', deps), 'Finished');
+    expect(finished?.verdict).toBe('Pass');
+  });
+});

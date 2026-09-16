@@ -65,6 +65,37 @@ button:disabled {
   overflow: hidden;
 }
 
+/*
+ * Below 900px the two panes stack instead of shrinking.
+ *
+ * MEASURED DEFECT: at a 390px phone viewport the fixed 380px first column
+ * consumed the whole width and the console collapsed to ZERO — a judge opening
+ * the link on their phone saw Tiffin and no console at all. Stacking keeps both
+ * usable, and the page scrolls as one column.
+ */
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(420px, 60vh) 1fr;
+    overflow-y: auto;
+  }
+
+  .stage {
+    border-right: 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .console {
+    overflow: visible;
+  }
+
+  .log {
+    /* No longer a flex child competing for a fixed height. */
+    max-height: none;
+    overflow: visible;
+  }
+}
+
 .stage {
   position: relative;
   border-right: 1px solid var(--hairline);

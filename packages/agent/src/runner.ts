@@ -30,6 +30,15 @@ export interface RunLimits {
   readonly maxRetries: number;
   readonly settleTimeoutMs: number;
   readonly settlePollMs: number;
+  /**
+   * Wall-clock ceiling for the whole run.
+   *
+   * The step ceiling bounds how many actions happen; it does not bound TIME. A
+   * planner that takes 40s a call (which we measured on an integrated GPU)
+   * would sit at 25 steps for seventeen minutes with the UI looking alive and
+   * a judge waiting. Nothing in this system is allowed to have no timeout.
+   */
+  readonly maxRunMs: number;
 }
 
 /**
@@ -84,6 +93,7 @@ export async function* run(goal: string, deps: RunnerDeps, signal: AbortSignal):
     maxRetries: deps.limits?.maxRetries ?? DEFAULT_LIMITS.maxRetries,
     settleTimeoutMs: deps.limits?.settleTimeoutMs ?? DEFAULT_LIMITS.settleTimeoutMs,
     settlePollMs: deps.limits?.settlePollMs ?? DEFAULT_LIMITS.settlePollMs,
+    maxRunMs: deps.limits?.maxRunMs ?? DEFAULT_LIMITS.maxRunMs,
   };
 
   const retries = new RetryBudget(limits.maxRetries);
@@ -128,6 +138,15 @@ export async function* run(goal: string, deps: RunnerDeps, signal: AbortSignal):
 
     if (step >= limits.maxSteps) {
       yield finished('Blocked', `reached the ${limits.maxSteps}-action ceiling without finishing`);
+      return;
+    }
+
+    const elapsed = now() - startedAt;
+    if (elapsed >= limits.maxRunMs) {
+      yield finished(
+        'Blocked',
+        `ran for ${Math.round(elapsed / 1000)}s without finishing, past the ${Math.round(limits.maxRunMs / 1000)}s ceiling`,
+      );
       return;
     }
 

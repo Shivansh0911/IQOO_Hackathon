@@ -20,6 +20,12 @@ export const DEFAULT_LIMITS = {
   stuckTerminateAt: 4,
   settleTimeoutMs: 2500,
   settlePollMs: 120,
+  /**
+   * Wall-clock ceiling. 25 steps at a measured 4s a call is ~100s of planning
+   * plus execution and settle; 180s leaves room for a slow machine and still
+   * ends before a judge assumes it has hung.
+   */
+  maxRunMs: 180_000,
 } as const;
 
 /** Counts consecutive invalid model outputs; resets the moment one is accepted. */

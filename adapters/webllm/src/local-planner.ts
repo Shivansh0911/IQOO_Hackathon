@@ -56,6 +56,22 @@ export interface LoadProgress {
 export interface LocalPlannerOptions {
   readonly model?: string;
   readonly onProgress?: (progress: LoadProgress) => void;
+  /**
+   * When true (the default), `available()` reports false until the weights are
+   * actually loaded.
+   *
+   * THIS EXISTS BECAUSE OF A MEASURED P0. WebGPU being *present* is not the same
+   * as the local tier being *usable*: the first call has to download ~1.1GB.
+   * With the old behaviour the registry auto-selected local, the run started,
+   * and the console sat on a blinking "planning" caret for minutes with no
+   * progress anywhere near it. On conference wifi a judge would conclude the
+   * thing was broken, and they would be right to.
+   *
+   * So the local tier advertises itself only once it is warm. Loading is an
+   * explicit act — "Load model" or "Demo mode" — with real progress shown, and
+   * automatic selection prefers local from then on.
+   */
+  readonly requireWarm?: boolean;
 }
 
 /** WebGPU detection. Cheap, safe to call repeatedly, and never throws. */
@@ -99,7 +115,22 @@ export class LocalPlanner implements Planner {
   }
 
   async available(): Promise<boolean> {
-    return (await detectWebGpu()).available;
+    if (!(await detectWebGpu()).available) return false;
+    return this.options.requireWarm === false ? true : this.engine !== null;
+  }
+
+  /**
+   * Why the local tier is or is not usable right now, for the UI to explain.
+   * 'needs-download' is a normal state, not a failure.
+   */
+  async readiness(): Promise<{ state: 'ready' | 'needs-download' | 'unavailable'; detail: string }> {
+    const probe = await detectWebGpu();
+    if (!probe.available) return { state: 'unavailable', detail: probe.reason };
+    if (this.engine) return { state: 'ready', detail: 'The model is loaded and runs entirely on this device.' };
+    return {
+      state: 'needs-download',
+      detail: 'WebGPU is available. The model is about ~1.1GB and downloads once, then works with the network off.',
+    };
   }
 
   /**
