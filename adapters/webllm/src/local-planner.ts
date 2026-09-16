@@ -28,19 +28,24 @@ import type * as WebLLM from '@mlc-ai/web-llm';
 /**
  * The model.
  *
- * Llama 3.2 1B Instruct, q4f16_1. Chosen deliberately:
- *   - 1B parameters, which is the class we will actually run on the phone. A 3B
- *     model would score better here and lie about the Android story.
- *   - Instruction-tuned, so it follows "reply with one JSON object" without
- *     fine-tuning.
- *   - ~880MB quantised: large enough to be worth caching, small enough to
- *     download once on conference wifi.
- * Held as a constant because it is the one line to edit when we change it.
+ * Qwen2.5 1.5B Instruct, q4f16_1 — chosen by MEASUREMENT, not by reputation.
+ *
+ * Llama 3.2 1B was the first choice because 1B is exactly the class we will run
+ * on the phone. It failed on the thing that matters: across 20 calls against
+ * real screens it emitted node index 0 on 18 of them, reading the goal and
+ * writing a plausible action without ever attending to the element list. Three
+ * measured prompt fixes took it from 87% to 75% invalid and no further.
+ *
+ * Qwen2.5-1.5B is still in the 1B-2B class, so the phone story survives, and it
+ * is markedly stronger at structured output. See docs/DECISIONS.md D12 for the
+ * side-by-side table.
+ *
+ * Held as constants because these are the one line to edit when we change them.
  */
-export const DEFAULT_LOCAL_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+export const DEFAULT_LOCAL_MODEL = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
 
-/** A slightly larger fallback for machines that can afford it. Opt-in only. */
-export const LARGER_LOCAL_MODEL = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
+/** The original 1B. Kept selectable so the comparison stays reproducible. */
+export const SMALLER_LOCAL_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
 
 export interface LoadProgress {
   /** 0..1. Real progress from the runtime, never a fake animation. */

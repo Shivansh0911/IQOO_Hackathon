@@ -7,3 +7,4 @@ export * from './expectation.js';
 export * from './validation.js';
 export * from './ports.js';
 export * from './platform.js';
+export * from './voice.js';

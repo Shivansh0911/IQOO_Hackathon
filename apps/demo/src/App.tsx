@@ -24,6 +24,8 @@ import { statusFacts, useConsole } from './run-store.js';
 import { StatusStrip } from './components/StatusStrip.js';
 import { StepLog } from './components/StepLog.js';
 import { ReportActions } from './components/ReportActions.js';
+import { GuardrailsPanel } from './components/GuardrailsPanel.js';
+import { VoiceInput } from './components/VoiceInput.js';
 import { DEMO_GOALS, scriptFor } from './demo-goals.js';
 import { ScriptedPlanner } from './scripted-planner.js';
 import './styles.css';
@@ -63,6 +65,7 @@ function Ring({ node, host }: { node: UiNode | null; host: HTMLElement | null })
 
 export function App() {
   const stage = useRef<HTMLDivElement>(null);
+  const voicePanel = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController | null>(null);
 
   const [platformId, setPlatformId] = useState<'web' | 'android'>('web');
@@ -204,6 +207,17 @@ export function App() {
     setSelectionNote(null);
   }, []);
 
+  // The lexicon is built from what is ACTUALLY on screen right now, which is
+  // why a name the user can see is a name the mic can get right.
+  const screenTexts = useMemo(() => {
+    if (!profile.implemented) return [];
+    const read = webProfile.reader as { readSync?: () => { ok: boolean; value?: { state: { nodes: readonly { text: string; desc: string }[] } } } };
+    const snapshot = read.readSync?.();
+    if (!snapshot?.ok || !snapshot.value) return [];
+    return snapshot.value.state.nodes.flatMap((n) => [n.text, n.desc]).filter(Boolean);
+    // Re-read whenever a run ends or the log changes: that is when the screen moved.
+  }, [profile.implemented, webProfile.reader, state.rows.length, state.verdict]);
+
   const facts = statusFacts(profile, state.planner, online, state.lastTokens);
   const pending = state.pending;
 
@@ -260,8 +274,14 @@ export function App() {
               disabled={state.running}
               aria-label="What should the agent test?"
             />
-            <button type="button" className="mic" disabled title="Voice arrives in step 10">
-              MIC
+            <button
+              type="button"
+              className="mic"
+              disabled={state.running}
+              title="Hold the mic in the voice panel below"
+              onClick={() => voicePanel.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            >
+              MIC ↓
             </button>
           </div>
 
@@ -309,7 +329,19 @@ export function App() {
           running={state.running}
         />
 
+        <div ref={voicePanel}>
+          <VoiceInput
+            disabled={state.running}
+            screenTexts={screenTexts}
+            onConfirm={(goal) => {
+              useConsole.getState().setGoal(goal);
+              void start(goal);
+            }}
+          />
+        </div>
+
         {!state.running && <ReportActions events={state.events} />}
+        {!state.running && <GuardrailsPanel />}
 
         <div className="panel">
           <div className="panel-title">settings</div>
@@ -371,6 +403,11 @@ export function App() {
           <p className="note">
             No key is needed to try this. Without one the mock tier runs the real loop against a scripted plan, and
             the strip above says so.
+          </p>
+          <p className="note" style={{ marginTop: 8 }}>
+            <strong>Why two tiers?</strong> The thesis is that structured input is small enough for a small model —
+            438 tokens a screen, measured. <em>Which</em> small model reliably picks a node index is a tuning question
+            we are still answering, so the tier that works is the default and the strip always names it.
           </p>
         </div>
       </section>

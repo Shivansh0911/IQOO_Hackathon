@@ -20,8 +20,8 @@ export const SECTION_ROLE = `You drive a phone app to complete one goal.
 You are given a list of ELEMENTS. You reply with one ACTION.
 
 An ELEMENT looks like {"i":3,"role":"btn","text":"Add","clk":1}. That is INPUT.
-An ACTION looks like {"type":"Tap","node":3,"reason":"add the item"}. That is your OUTPUT.
-NEVER reply with an element. Your reply always starts with {"type":.
+An ACTION looks like {"node":3,"type":"Tap","reason":"add the item"}. That is your OUTPUT.
+NEVER reply with an element. Your reply starts with {"node": whenever the action targets one.
 
 Reply with EXACTLY ONE JSON object and nothing else.
 Use each field name ONCE. No prose, no markdown, no code fences, no repetition.`;
@@ -33,13 +33,15 @@ Never use CSS selectors, coordinates, XPath, or element names.
 If the element you want is not in the list, it is not on the screen: scroll, or Finish.`;
 
 // ─── Section 3: the seven actions, shown as exact shapes ───────────────────
-export const SECTION_ACTIONS = `ACTIONS - use exactly one of these shapes
-{"type":"Tap","node":<i>,"reason":"<why>"}
-{"type":"TypeText","node":<i>,"text":"<text>","reason":"<why>"}
-{"type":"Scroll","node":<i>,"direction":"down"|"up"|"left"|"right","reason":"<why>"}
+export const SECTION_ACTIONS = `ACTIONS - use exactly one of these shapes.
+The FIRST thing you write is "node", so decide WHICH ELEMENT before anything else.
+
+{"node":<i>,"type":"Tap","reason":"<why>"}
+{"node":<i>,"type":"TypeText","text":"<text>","reason":"<why>"}
+{"node":<i>,"type":"Scroll","direction":"down"|"up"|"left"|"right","reason":"<why>"}
+{"node":<i>,"type":"Assert","expect":"<rule>","reason":"<why>"}
 {"type":"PressKey","key":"Back"|"Home"|"Enter","reason":"<why>"}
 {"type":"Wait","maxMs":<1-${MAX_WAIT_MS}>,"reason":"<why>"}
-{"type":"Assert","node":<i>,"expect":"<rule>","reason":"<why>"}
 {"type":"Finish","verdict":"Pass"|"Fail"|"Blocked","reason":"<why>"}
 
 Tap only elements with "clk":1.
@@ -88,24 +90,24 @@ Use Blocked when the goal cannot be done on this app.`;
 export const SECTION_EXAMPLES = `EXAMPLES
 
 GOAL: search for pizza
-ELEMENTS: [{"i":0,"role":"text","text":"FoodCo"},{"i":1,"role":"btn","text":"Cart","clk":1},{"i":2,"role":"edit","desc":"Search for restaurants or dishes","ed":1}]
-{"type":"TypeText","node":2,"text":"pizza","reason":"type the search term into the search field"}
+ELEMENTS: [{"i":9,"role":"text","text":"FoodCo"},{"i":10,"role":"btn","text":"Cart","clk":1},{"i":11,"role":"edit","desc":"Search for restaurants or dishes","ed":1}]
+{"node":11,"type":"TypeText","text":"pizza","reason":"type the search term into the search field"}
 
 GOAL: open the Lotus Cafe listing
 ELEMENTS: [{"i":0,"role":"edit","text":"cafe","ed":1},{"i":1,"role":"text","text":"3 places"},{"i":2,"role":"btn","text":"Rung Bakery 3.9","clk":1},{"i":3,"role":"btn","text":"Lotus Cafe Coffee 4.2 20 min","clk":1}]
-{"type":"Tap","node":3,"reason":"open the Lotus Cafe listing"}
+{"node":3,"type":"Tap","reason":"open the Lotus Cafe listing"}
 
 GOAL: Tiffin kholo aur check karo cart ka total 500 se kam hai
-ELEMENTS: [{"i":0,"role":"text","text":"Total"},{"i":1,"role":"btn","text":"Proceed to checkout","clk":1},{"i":2,"role":"text","text":"Rs 374"}]
-{"type":"Assert","node":2,"expect":"<500","reason":"check the total is under 500"}
+ELEMENTS: [{"i":22,"role":"text","text":"Total"},{"i":23,"role":"btn","text":"Proceed to checkout","clk":1},{"i":24,"role":"text","text":"Rs 374"}]
+{"node":24,"type":"Assert","expect":"<500","reason":"check the total is under 500"}
 
 GOAL: पहले रेस्टोरेंट से एक आइटम कार्ट में डालो
-ELEMENTS: [{"i":0,"role":"text","text":"Menu"},{"i":1,"role":"list","scr":1},{"i":2,"role":"text","text":"Paneer Roll"},{"i":3,"role":"btn","text":"Add","clk":1}]
-{"type":"Tap","node":3,"reason":"add the first item to the cart"}
+ELEMENTS: [{"i":4,"role":"text","text":"Menu"},{"i":5,"role":"list","scr":1},{"i":6,"role":"text","text":"Paneer Roll"},{"i":7,"role":"btn","text":"Add","clk":1}]
+{"node":7,"type":"Tap","reason":"add the first item to the cart"}
 
 GOAL: scroll down to see more results
-ELEMENTS: [{"i":0,"role":"list","scr":1},{"i":1,"role":"btn","text":"Cart","clk":1}]
-{"type":"Scroll","node":0,"direction":"down","reason":"reveal more of the list"}
+ELEMENTS: [{"i":16,"role":"list","scr":1},{"i":17,"role":"btn","text":"Cart","clk":1}]
+{"node":16,"type":"Scroll","direction":"down","reason":"reveal more of the list"}
 
 GOAL: book a flight to Delhi
 ELEMENTS: [{"i":0,"role":"edit","desc":"Search for restaurants or dishes","ed":1},{"i":1,"role":"btn","text":"Cart","clk":1}]
@@ -171,13 +173,32 @@ Whatever you tried is not working. Choose a DIFFERENT approach, or Finish with v
  * the screen so the model re-reads the list with the error in mind.
  */
 export function buildUserPrompt(request: PlanRequest): string {
-  const parts = [`GOAL\n${request.goal}`, formatHistory(request.history)];
+  // ORDER, decided by measurement.
+  //
+  // History first, then the GOAL, then the ELEMENT LIST, then the instruction.
+  // Small models weight the end of the prompt most heavily, and the element list
+  // was precisely the part being ignored — so the goal and the list it must be
+  // answered from now sit adjacent, at the end, with nothing between them.
+  const parts = [formatHistory(request.history)];
 
   if (request.reflection) parts.push(formatReflection(request.reflection));
   if (request.lastError) parts.push(formatCorrection(request.lastError));
 
-  parts.push(`ELEMENT LIST (this is the whole screen; "i" is how you address each element)\n${request.screenJson}`);
-  parts.push('Reply with one JSON object.');
+  parts.push(`GOAL\n${request.goal}`);
+  parts.push(`ELEMENT LIST - this is INPUT, do not repeat it back\n${request.screenJson}`);
+
+  // An index digest, derived from the list just given.
+  //
+  // MEASURED: a 1B model emitted a CONSTANT node index on 18 of 20 calls,
+  // ignoring the element list entirely — reading the goal and writing a
+  // plausible action shape without ever attending to the screen. Restating the
+  // legal indices compactly, adjacent to the instruction, gives a small model
+  // something concrete to select from. It is the same information the
+  // clk/ed/scr flags already carry.
+  const digest = indexDigest(request.screenJson);
+  if (digest) parts.push(digest);
+
+  parts.push('Choose the node number from the list above FIRST, then the action. Reply with ONE object.');
   return parts.join('\n\n');
 }
 

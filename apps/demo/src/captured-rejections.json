@@ -1,0 +1,159 @@
+{
+  "capturedAt": "2026-09-17",
+  "model": "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+  "runtime": "WebLLM on WebGPU, NVIDIA Lovelace",
+  "totalCalls": 20,
+  "validCalls": 5,
+  "rejections": [
+    {
+      "screenId": "search",
+      "goal": "search for biryani",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"search for biryani\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2588,
+      "screenTokens": 453
+    },
+    {
+      "screenId": "search",
+      "goal": "search for biryani",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"search for biryani\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2281,
+      "screenTokens": 453
+    },
+    {
+      "screenId": "search",
+      "goal": "search for biryani",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"search for biryani\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2267,
+      "screenTokens": 453
+    },
+    {
+      "screenId": "search",
+      "goal": "search for biryani",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"search for biryani\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2298,
+      "screenTokens": 453
+    },
+    {
+      "screenId": "results",
+      "goal": "open the first restaurant in the results",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"open the first restaurant in the results\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2221,
+      "screenTokens": 407
+    },
+    {
+      "screenId": "results",
+      "goal": "open the first restaurant in the results",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"open the first restaurant in the results\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2221,
+      "screenTokens": 407
+    },
+    {
+      "screenId": "results",
+      "goal": "open the first restaurant in the results",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"open the first restaurant in the results\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2209,
+      "screenTokens": 407
+    },
+    {
+      "screenId": "results",
+      "goal": "open the first restaurant in the results",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"open the first restaurant in the results\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2254,
+      "screenTokens": 407
+    },
+    {
+      "screenId": "restaurant",
+      "goal": "add the first item to the cart",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"add the first item to the cart\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2498,
+      "screenTokens": 630
+    },
+    {
+      "screenId": "restaurant",
+      "goal": "add the first item to the cart",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"add the first item to the cart\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2527,
+      "screenTokens": 630
+    },
+    {
+      "screenId": "restaurant",
+      "goal": "add the first item to the cart",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"add the first item to the cart\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2458,
+      "screenTokens": 630
+    },
+    {
+      "screenId": "restaurant",
+      "goal": "add the first item to the cart",
+      "raw": "{ \"type\": \"Tap\", \"node\": 0, \"reason\": \"add the first item to the cart\" }",
+      "stage": "semantic",
+      "fault": "invalid-for-screen",
+      "message": "Node 0 is not clickable (role \"text\"). Tap only nodes marked \"clk\":1.",
+      "latencyMs": 2492,
+      "screenTokens": 630
+    },
+    {
+      "screenId": "checkout",
+      "goal": "check the delivery address is set",
+      "raw": "{ \"type\": \"Assert\", \"node\": 0, \"reason\": \"check the delivery address is set\" }",
+      "stage": "schema",
+      "fault": "malformed-output",
+      "message": "Field \"expect\": Required.",
+      "latencyMs": 2168,
+      "screenTokens": 414
+    },
+    {
+      "screenId": "checkout",
+      "goal": "check the delivery address is set",
+      "raw": "{ \"type\": \"Assert\", \"node\": 0, \"reason\": \"check the delivery address is set\" }",
+      "stage": "schema",
+      "fault": "malformed-output",
+      "message": "Field \"expect\": Required.",
+      "latencyMs": 2171,
+      "screenTokens": 414
+    },
+    {
+      "screenId": "checkout",
+      "goal": "check the delivery address is set",
+      "raw": "{ \"type\": \"Assert\", \"node\": 0, \"reason\": \"check the delivery address is set\" }",
+      "stage": "schema",
+      "fault": "malformed-output",
+      "message": "Field \"expect\": Required.",
+      "latencyMs": 2185,
+      "screenTokens": 414
+    }
+  ]
+}
