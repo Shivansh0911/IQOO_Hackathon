@@ -1,0 +1,12 @@
+{
+  "name": "@origo/adapter-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "THE SWAPPABLE LAYER. Implements core's ports against the DOM. The Android adapter implements the same ports against AccessibilityNodeInfo.",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@origo/core": "workspace:*"
+  }
+}

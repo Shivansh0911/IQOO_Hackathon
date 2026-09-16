@@ -1,0 +1,21 @@
+{
+  "name": "@origo/debug-panel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only: mounts Tiffin next to a dump of what the DOM reader sees. Not shipped.",
+  "scripts": { "dev": "vite", "build": "vite build" },
+  "dependencies": {
+    "@origo/core": "workspace:*",
+    "@origo/adapter-web": "workspace:*",
+    "@tiffin/app": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.2",
+    "vite": "^5.4.8"
+  }
+}

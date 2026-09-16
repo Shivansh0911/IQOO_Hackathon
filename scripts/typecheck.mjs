@@ -14,7 +14,7 @@ import process from 'node:process';
 const root = path.resolve(import.meta.dirname, '..');
 const projects = ['tsconfig.json'];
 
-for (const group of ['packages', 'adapters', 'apps']) {
+for (const group of ['packages', 'adapters', 'apps', 'tooling']) {
   const dir = path.join(root, group);
   if (!existsSync(dir)) continue;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

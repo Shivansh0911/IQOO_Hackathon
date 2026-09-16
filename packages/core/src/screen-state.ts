@@ -114,13 +114,19 @@ export function toPromptJson(state: ScreenState): string {
 /**
  * Token estimate for the status strip and the step log.
  *
- * Heuristic, and labelled as such wherever it is displayed: compact JSON is
- * punctuation-dense, so it tokenises at roughly 3.5 characters per token rather
- * than the ~4 of prose. The debug panel measures the true count with a real BPE
- * tokenizer; this is the cheap number we can afford on every snapshot.
+ * CALIBRATED, not guessed. An earlier 3.5-chars-per-token guess understated the
+ * real BPE count by about 17% on our own screens, which is exactly the kind of
+ * quiet flattery a status strip must not do. Measured against a real BPE
+ * tokenizer on Tiffin's five screens, compact JSON runs at ~2.8 characters per
+ * token — it is punctuation-dense, and punctuation tokenises badly.
+ *
+ * Still an estimate, still labelled as one wherever it is shown; the
+ * measurement harness (scripts/measure-screens.mjs) reports the true count.
  */
+export const CHARS_PER_TOKEN = 2.8;
+
 export function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 3.5);
+  return Math.ceil(text.length / CHARS_PER_TOKEN);
 }
 
 /**
