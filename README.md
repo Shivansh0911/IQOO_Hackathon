@@ -119,6 +119,27 @@ cached, but the lazily-imported WebLLM chunk has nothing caching it — there is
 no service worker. So the honest claim is **"works with the network off once the
 model is loaded"**, never "works offline" unqualified.
 
+### The same reader on real websites — `node scripts/measure-real-sites.mjs`
+
+Read-only, phone viewport. This is the number that says most about Android.
+
+| site | nodes before | after | tokens | 40-cap binds |
+|---|---|---|---|---|
+| Wikipedia article | **13,115** | 40 | 725 | yes |
+| Wikipedia search | 9,466 | 40 | 636 | yes |
+| example.com | 6 | 3 | 54 | no |
+| Tiffin (densest) | 180 | 17 | 447 | no |
+
+**The token thesis scales:** a 13,115-node page still serialises to 725 tokens,
+because the cap holds the ceiling. `offscreen` alone drops 10,776 of them.
+
+**And the honest other half:** at that density the kept 40 skew toward large
+layout containers — Wikipedia's list opens with "Site", "Main menu", "Personal
+tools" — because ranking is by on-screen area and the biggest elements on a
+dense page are wrappers. Only 14 of 40 were clickable. Ranking interactive nodes
+above non-interactive ones before the cap is the fix, and it is written into
+[docs/PORTING.md](docs/PORTING.md) as hour-zero work rather than pretended away.
+
 ### The flows, walked on the production build
 
 `node scripts/verify-flows.mjs` — clean profile, no cache, no localStorage.

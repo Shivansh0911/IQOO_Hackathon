@@ -63,11 +63,41 @@ path from stock Android, and the confirm button has a **forced ~5-second delay**
 before it becomes tappable. **Budget ten minutes at hour zero** and do it first,
 because everything else is blocked behind it.
 
-### 4 · Real apps are far denser than Tiffin
-Tiffin's densest screen is 180 nodes before pruning. A real app will be several
-times that, and the 40-node cap — which **never once binds on Tiffin** — will
-bind immediately. The drop-reason histogram logging stays in precisely so this
-is a measurement and not a guess. Expect to retune in the first two hours.
+### 4 · Real apps are far denser than Tiffin — MEASURED, not guessed
+
+`node scripts/measure-real-sites.mjs` runs the same reader against real public
+websites at a phone viewport. Read-only; it clicks nothing.
+
+| site | nodes before | after | kept | tokens | 40-cap binds |
+|---|---|---|---|---|---|
+| Wikipedia article | **13,115** | 40 | 0.3% | 725 | **yes** (+2) |
+| Wikipedia search results | **9,466** | 40 | 0.4% | 636 | **yes** (+7) |
+| example.com | 6 | 3 | 50% | 54 | no |
+| *Tiffin, densest screen* | *180* | *17* | *9%* | *447* | *no* |
+
+**Two findings, and they point opposite ways.**
+
+GOOD: the token thesis SCALES. A 13,115-node page still serialises to 725
+tokens, because the cap holds the ceiling. Density explodes; prompt size does
+not. `offscreen` does the heavy lifting — 10,776 of 13,115 nodes on the
+Wikipedia article — which is the rule behaving exactly as designed.
+
+BAD, and this is the retuning work: at that density the kept 40 are **biased
+toward large layout containers**. The Wikipedia kept list opens with "Site",
+"Main menu", "Personal tools", "Appearance" — page chrome, because ranking is by
+on-screen AREA and the biggest elements on a dense page are wrappers, not
+controls. Only 14 of 40 were clickable.
+
+So the hour-zero expectation is concrete: **the cap will bind immediately on a
+real app, and the AREA ranking is the thing to retune** — most likely by ranking
+interactive nodes above non-interactive ones before applying the cap, rather
+than by raising the cap. Keep the drop-reason histogram logging in place so this
+stays a measurement.
+
+One caveat on method: MDN could not be measured because its Content Security
+Policy blocks an injected script. That is a limitation of the measurement
+harness, not of the product — a real extension content script runs in an
+isolated world and is not subject to the page's CSP.
 
 ### 5 · Every latency number we have is meaningless for the phone
 All of them were measured in a browser on a laptop. Cold-start load, per-step
