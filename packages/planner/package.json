@@ -1,0 +1,12 @@
+{
+  "name": "@origo/planner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Planner interface, pure prompt assembly, and the platform-agnostic planner implementations.",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@origo/core": "workspace:*"
+  }
+}
