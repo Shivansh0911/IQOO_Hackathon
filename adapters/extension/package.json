@@ -1,0 +1,13 @@
+{
+  "name": "@origo/adapter-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The extension profile: the same agent, driving sites we do not own.",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@origo/core": "workspace:*",
+    "@origo/adapter-web": "workspace:*"
+  }
+}

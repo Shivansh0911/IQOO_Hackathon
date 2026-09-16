@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Origo Loop",
+  "version": "0.1.0",
+  "description": "Tell it what to test. It reads the page's structure and tests it itself.",
+  "permissions": ["activeTab", "scripting", "sidePanel", "storage"],
+  "host_permissions": ["https://*/*", "http://*/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "action": { "default_title": "Open Origo Loop" },
+  "content_scripts": [
+    {
+      "matches": ["https://*/*", "http://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

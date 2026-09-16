@@ -35,6 +35,9 @@ importers:
       typescript-eslint:
         specifier: ^8.8.1
         version: 8.70.0(eslint@9.39.5)(typescript@5.9.3)
+      vite:
+        specifier: ^5.4.8
+        version: 5.4.21(@types/node@20.19.43)
       vitest:
         specifier: ^2.1.2
         version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)
@@ -45,11 +48,32 @@ importers:
         specifier: workspace:*
         version: link:../../packages/core
 
+  adapters/extension:
+    dependencies:
+      '@origo/adapter-web':
+        specifier: workspace:*
+        version: link:../web
+      '@origo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+
   adapters/web:
     dependencies:
       '@origo/core':
         specifier: workspace:*
         version: link:../../packages/core
+
+  adapters/webllm:
+    dependencies:
+      '@mlc-ai/web-llm':
+        specifier: ^0.2.79
+        version: 0.2.85
+      '@origo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@origo/planner':
+        specifier: workspace:*
+        version: link:../../packages/planner
 
   apps/demo:
     dependencies:
@@ -59,6 +83,9 @@ importers:
       '@origo/adapter-web':
         specifier: workspace:*
         version: link:../../adapters/web
+      '@origo/adapter-webllm':
+        specifier: workspace:*
+        version: link:../../adapters/webllm
       '@origo/agent':
         specifier: workspace:*
         version: link:../../packages/agent
@@ -84,6 +111,49 @@ importers:
         specifier: ^4.5.5
         version: 4.5.7(@types/react@18.3.31)(react@18.3.1)
     devDependencies:
+      '@types/react':
+        specifier: ^18.3.11
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.1
+        version: 18.3.7(@types/react@18.3.31)
+      '@vitejs/plugin-react':
+        specifier: ^4.3.2
+        version: 4.7.0(vite@5.4.21(@types/node@20.19.43))
+      vite:
+        specifier: ^5.4.8
+        version: 5.4.21(@types/node@20.19.43)
+
+  apps/extension:
+    dependencies:
+      '@origo/adapter-extension':
+        specifier: workspace:*
+        version: link:../../adapters/extension
+      '@origo/adapter-web':
+        specifier: workspace:*
+        version: link:../../adapters/web
+      '@origo/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
+      '@origo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@origo/planner':
+        specifier: workspace:*
+        version: link:../../packages/planner
+      '@origo/report':
+        specifier: workspace:*
+        version: link:../../packages/report
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/chrome':
+        specifier: ^0.0.270
+        version: 0.0.270
       '@types/react':
         specifier: ^18.3.11
         version: 18.3.31
@@ -160,6 +230,43 @@ importers:
       '@origo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@tiffin/app':
+        specifier: workspace:*
+        version: link:../../apps/tiffin
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.11
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.1
+        version: 18.3.7(@types/react@18.3.31)
+      '@vitejs/plugin-react':
+        specifier: ^4.3.2
+        version: 4.7.0(vite@5.4.21(@types/node@20.19.43))
+      vite:
+        specifier: ^5.4.8
+        version: 5.4.21(@types/node@20.19.43)
+
+  tooling/gate2:
+    dependencies:
+      '@origo/adapter-web':
+        specifier: workspace:*
+        version: link:../../adapters/web
+      '@origo/adapter-webllm':
+        specifier: workspace:*
+        version: link:../../adapters/webllm
+      '@origo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@origo/planner':
+        specifier: workspace:*
+        version: link:../../packages/planner
       '@tiffin/app':
         specifier: workspace:*
         version: link:../../apps/tiffin
@@ -667,6 +774,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
+  '@mlc-ai/web-llm@0.2.85':
+    resolution: {integrity: sha512-CwUiSAvDCYnmAZlpPMkurPHDfBLq6fvdRB3vRgoA894hRG/V/BSeY9bmMm6iIIU5VpjJxfb/dLPpJX2at0L9rw==}
+
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
     engines: {node: ^22.20 || ^24.12 || >=25}
@@ -813,8 +923,20 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
+  '@types/chrome@0.0.270':
+    resolution: {integrity: sha512-ADvkowV7YnJfycZZxL2brluZ6STGW+9oKG37B422UePf2PCXuFA/XdERI0T18wtuWPx0tmFeZqq6MOXVk1IC+Q==}
+
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
+
+  '@types/filesystem@0.0.36':
+    resolution: {integrity: sha512-vPDXOZuannb9FZdxgHnqSwAG/jvdGM8Wq+6N4D/d80z+D4HWH+bItqsZaVRQykAn6WEVeEkLm2oQigyHtgb0RA==}
+
+  '@types/filewriter@0.0.33':
+    resolution: {integrity: sha512-xFU8ZXTw4gd358lb2jw25nxY9QAgqn2+bKKjKOYfNCzN4DKCFetK7sPtrlpg66Ywe3vWY9FNxprZawAh9wfJ3g==}
+
+  '@types/har-format@1.2.16':
+    resolution: {integrity: sha512-fluxdy7ryD3MV6h8pTfTYpy/xQzCFC7m89nOH9y94cNqJ1mDIDPut7MnRHI3F6qRmh/cT2fUjG1MLdCNb4hE9A==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -1348,6 +1470,10 @@ packages:
 
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
+
+  loglevel@1.9.2:
+    resolution: {integrity: sha512-HgMmCqIJSAKqo68l0rS2AanEWfkxaZ5wNiEFb5ggm08lDs9Xl2KxBlX3PTcaD2chBM1gXAYf491/M2Rv8Jwayg==}
+    engines: {node: '>= 0.6.0'}
 
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
@@ -2130,6 +2256,10 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
+  '@mlc-ai/web-llm@0.2.85':
+    dependencies:
+      loglevel: 1.9.2
+
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
 
@@ -2231,7 +2361,20 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.8
 
+  '@types/chrome@0.0.270':
+    dependencies:
+      '@types/filesystem': 0.0.36
+      '@types/har-format': 1.2.16
+
   '@types/estree@1.0.9': {}
+
+  '@types/filesystem@0.0.36':
+    dependencies:
+      '@types/filewriter': 0.0.33
+
+  '@types/filewriter@0.0.33': {}
+
+  '@types/har-format@1.2.16': {}
 
   '@types/json-schema@7.0.15': {}
 
@@ -2853,6 +2996,8 @@ snapshots:
       p-locate: 5.0.0
 
   lodash.merge@4.6.2: {}
+
+  loglevel@1.9.2: {}
 
   loose-envify@1.4.0:
     dependencies:

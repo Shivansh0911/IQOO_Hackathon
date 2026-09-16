@@ -184,7 +184,17 @@ export default tseslint.config(
       // `document` is here because Playwright's page.evaluate callbacks are
       // serialised and run INSIDE the browser, not in Node. They are browser
       // code that happens to live in a Node file.
-      globals: { console: 'readonly', process: 'readonly', document: 'readonly', URL: 'readonly' },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        setTimeout: 'readonly',
+        // document/navigator/URL run INSIDE page.evaluate, not in Node.
+        document: 'readonly',
+        navigator: 'readonly',
+        URL: 'readonly',
+      },
     },
     rules: {
       'no-restricted-imports': 'off',

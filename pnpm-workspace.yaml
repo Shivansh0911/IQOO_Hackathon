@@ -3,3 +3,4 @@ packages:
   - 'adapters/*'
   - 'apps/*'
   - 'tooling/debug'
+  - 'tooling/gate2'

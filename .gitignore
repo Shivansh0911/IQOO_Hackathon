@@ -24,3 +24,6 @@ Thumbs.db
 
 # screenshots are evidence, not source
 .shots/
+
+# gate 2 measurement: a real browser profile holding the cached model weights
+.webgpu-profile/

@@ -1,0 +1,14 @@
+{
+  "name": "@origo/adapter-webllm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "LocalPlanner: a 1B-class instruct model in the browser on WebGPU. The on-device tier.",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@origo/core": "workspace:*",
+    "@origo/planner": "workspace:*",
+    "@mlc-ai/web-llm": "^0.2.79"
+  }
+}

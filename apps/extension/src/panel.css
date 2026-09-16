@@ -1,0 +1,589 @@
+/*
+ * The Origo console.
+ *
+ * Dark, square, hairline-ruled, monospaced wherever a machine wrote the string.
+ * That human/machine split is the visual thesis: prose is ours, mono is the
+ * agent's, and you can tell at a glance which is which.
+ *
+ * Banned, deliberately: gradients, glassmorphism, blur, glow, pulsing orbs,
+ * sparkle/brain/robot iconography, Material purple, centred body text, FABs.
+ * Radius never exceeds 4px. Motion only ever communicates a state change.
+ */
+
+:root {
+  --ink: #0e0e0e;
+  --ink-raised: #1a1a18;
+  --paper: #f7f5ef;
+  --paper-dim: #a8a6a0;
+  --amber: #f5b400;
+  --red: #e2231a;
+  --green: #0a7c3a;
+  --hairline: #2e2e2b;
+
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --display: 'Archivo Narrow', 'Oswald', 'Helvetica Neue Condensed', 'Arial Narrow', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 1px;
+}
+
+/* ── Shell ────────────────────────────────────────────────────────────────── */
+
+
+/* Panel-specific: a narrow single column rather than the demo's split pane. */
+.panel-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.panel-root .goal textarea {
+  width: 100%;
+  min-height: 70px;
+}
+
+.panel-root .log {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 8px 0 20px;
+}
+.shell {
+  display: grid;
+  grid-template-columns: minmax(380px, 440px) 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  border-right: 1px solid var(--hairline);
+  background: var(--ink);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  justify-content: space-between;
+  flex: none;
+}
+
+.stage-surface {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.console {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Status strip: our credibility. Never shows anything untrue. ──────────── */
+
+.status {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--ink-raised);
+  color: var(--paper-dim);
+  flex: none;
+}
+
+.status b {
+  color: var(--paper);
+  font-weight: 500;
+}
+
+.status .k {
+  color: #6e6c66;
+}
+
+.status .on-device {
+  color: var(--amber);
+}
+
+.status .warn {
+  color: var(--red);
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
+.masthead {
+  padding: 16px 14px 12px;
+  border-bottom: 1px solid var(--hairline);
+  flex: none;
+}
+
+.wordmark {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin: 0;
+}
+
+.wordmark em {
+  font-style: normal;
+  color: var(--amber);
+}
+
+.tagline {
+  color: var(--paper-dim);
+  margin: 6px 0 0;
+  font-size: 12.5px;
+}
+
+/* ── Goal input ───────────────────────────────────────────────────────────── */
+
+.goal {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--hairline);
+  flex: none;
+}
+
+.goal-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.goal textarea {
+  flex: 1;
+  resize: none;
+  background: var(--ink-raised);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  color: var(--paper);
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 9px 10px;
+  min-height: 62px;
+}
+
+.goal textarea:disabled {
+  color: var(--paper-dim);
+}
+
+.mic {
+  width: 62px;
+  flex: none;
+  border: 1px solid var(--hairline);
+  background: var(--ink-raised);
+  color: var(--paper-dim);
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.btn {
+  border: 1px solid var(--hairline);
+  background: var(--ink-raised);
+  color: var(--paper);
+  padding: 8px 14px;
+  font-size: 12.5px;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: #46463f;
+}
+
+.btn-primary {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #17140a;
+  font-weight: 600;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #ffc21a;
+  border-color: #ffc21a;
+}
+
+.btn-stop {
+  border-color: var(--red);
+  color: #ff7a72;
+}
+
+.btn-stop:hover:not(:disabled) {
+  background: rgba(226, 35, 26, 0.12);
+}
+
+.examples {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.example {
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--paper-dim);
+  font-size: 11.5px;
+  padding: 5px 9px;
+  text-align: left;
+}
+
+.example:hover {
+  color: var(--paper);
+  border-color: #46463f;
+}
+
+/* ── Step log ─────────────────────────────────────────────────────────────── */
+
+.log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0 24px;
+  min-height: 0;
+}
+
+.log-empty {
+  color: var(--paper-dim);
+  padding: 22px 14px;
+  font-size: 12.5px;
+  max-width: 46ch;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 30px 18px 1fr auto;
+  gap: 8px;
+  padding: 7px 14px;
+  border-bottom: 1px solid rgba(46, 46, 43, 0.5);
+  align-items: baseline;
+}
+
+.row:hover {
+  background: rgba(26, 26, 24, 0.6);
+}
+
+.row-n,
+.row-glyph,
+.row-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--paper-dim);
+}
+
+.row-glyph {
+  color: var(--amber);
+}
+
+.row-main {
+  min-width: 0;
+}
+
+.row-reason {
+  font-size: 12.5px;
+}
+
+.row-json {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: #6e6c66;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.row-meta {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.row-meta.ok {
+  color: var(--green);
+}
+
+.row-meta.bad {
+  color: var(--red);
+}
+
+/*
+ * Rejections, retries and reflections are INSET, never hidden. Showing the
+ * recovery working is the strongest technical-depth signal we have.
+ */
+.row-inset {
+  margin-left: 30px;
+  border-left: 2px solid var(--red);
+  background: rgba(226, 35, 26, 0.05);
+  padding: 7px 14px 7px 12px;
+  display: block;
+}
+
+.row-inset.stuck {
+  border-left-color: var(--amber);
+  background: rgba(245, 180, 0, 0.06);
+}
+
+.row-inset-tag {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+.row-inset.stuck .row-inset-tag {
+  color: var(--amber);
+}
+
+.row-inset-body {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.row-inset-raw {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: #6e6c66;
+  margin-top: 3px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* The caret row makes inference visible instead of invisible. */
+.thinking {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--amber);
+}
+
+.caret {
+  display: inline-block;
+  width: 7px;
+  height: 13px;
+  background: var(--amber);
+  animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.verdict {
+  margin: 12px 14px 0;
+  border: 1px solid var(--hairline);
+  padding: 12px;
+}
+
+.verdict-tag {
+  font-family: var(--display);
+  font-size: 22px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.verdict.pass .verdict-tag {
+  color: var(--green);
+}
+
+.verdict.fail .verdict-tag {
+  color: var(--red);
+}
+
+.verdict.blocked .verdict-tag {
+  color: var(--amber);
+}
+
+.verdict-reason {
+  margin-top: 2px;
+}
+
+.verdict-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--paper-dim);
+  margin-top: 8px;
+}
+
+/* ── Confirmation sheet ───────────────────────────────────────────────────── */
+
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--ink-raised);
+  border-top: 2px solid var(--amber);
+  padding: 14px;
+  z-index: 40;
+  animation: rise 180ms ease-out;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.sheet-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.sheet h3 {
+  margin: 5px 0 4px;
+  font-family: var(--display);
+  font-size: 19px;
+  text-transform: uppercase;
+}
+
+.sheet p {
+  margin: 0;
+  color: var(--paper-dim);
+  font-size: 12.5px;
+}
+
+.sheet code {
+  font-family: var(--mono);
+  color: var(--paper);
+}
+
+/* ── The amber ring on the target ─────────────────────────────────────────── */
+
+.ring {
+  position: absolute;
+  border: 2px solid var(--amber);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 30;
+  transition: all 150ms ease;
+  box-shadow: 0 0 0 1px rgba(14, 14, 14, 0.5);
+}
+
+.ring-badge {
+  position: absolute;
+  top: -9px;
+  left: -2px;
+  background: var(--amber);
+  color: #17140a;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 4px;
+  line-height: 15px;
+  border-radius: 2px;
+}
+
+/* ── Panels ───────────────────────────────────────────────────────────────── */
+
+.panel {
+  border-bottom: 1px solid var(--hairline);
+  padding: 10px 14px;
+  flex: none;
+}
+
+.panel-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+  margin-bottom: 7px;
+}
+
+.field {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.field label {
+  font-size: 12px;
+  color: var(--paper-dim);
+  min-width: 62px;
+}
+
+.field select,
+.field input {
+  flex: 1;
+  background: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  padding: 6px 8px;
+}
+
+.note {
+  color: var(--paper-dim);
+  font-size: 11.5px;
+  margin-top: 7px;
+}
+
+.note.warn {
+  color: #ff9a93;
+}

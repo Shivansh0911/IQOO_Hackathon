@@ -19,6 +19,7 @@ import { CloudPlanner, MockPlanner, PlannerRegistry } from '@origo/planner';
 import type { Planner, PlannerTier } from '@origo/planner';
 import { createWebProfile } from '@origo/adapter-web';
 import { androidProfile } from '@origo/adapter-android';
+import { LocalPlanner, detectWebGpu } from '@origo/adapter-webllm';
 import { statusFacts, useConsole } from './run-store.js';
 import { StatusStrip } from './components/StatusStrip.js';
 import { StepLog } from './components/StepLog.js';
@@ -69,6 +70,8 @@ export function App() {
   const [apiKey, setApiKey] = useState<string>(() => readKey() ?? '');
   const [online, setOnline] = useState<boolean>(() => globalThis.navigator?.onLine ?? true);
   const [selectionNote, setSelectionNote] = useState<string | null>(null);
+  const [load, setLoad] = useState<{ progress: number; text: string } | null>(null);
+  const [gpu, setGpu] = useState<{ available: boolean; reason: string } | null>(null);
 
   const state = useConsole();
 
@@ -98,13 +101,39 @@ export function App() {
   // The one line that changes when Android arrives.
   const profile: PlatformProfile = platformId === 'web' ? webProfile : androidProfile;
 
+  // Probed once, and reported honestly. If there is no WebGPU the UI says so
+  // and why, rather than silently running somewhere else and calling it
+  // on-device.
+  useEffect(() => {
+    void detectWebGpu().then(setGpu);
+  }, []);
+
+  const local = useMemo(
+    () => new LocalPlanner({ onProgress: (p) => setLoad({ progress: p.progress, text: p.text }) }),
+    [],
+  );
+
   const registry = useMemo(() => {
+    // Priority order: on-device is the product, not a fallback.
     const candidates: Planner[] = [
+      local,
       new CloudPlanner({ apiKey: () => (apiKey.trim() === '' ? null : apiKey.trim()) }),
       new MockPlanner({ script: [], latencyMs: 260 }),
     ];
     return new PlannerRegistry(candidates);
-  }, [apiKey]);
+  }, [apiKey, local]);
+
+  const preload = useCallback(async () => {
+    setSelectionNote(null);
+    setLoad({ progress: 0, text: 'starting' });
+    const result = await local.preload();
+    if (!result.ok) {
+      setSelectionNote(result.error.message);
+      setLoad(null);
+      return;
+    }
+    setLoad({ progress: 1, text: 'ready' });
+  }, [local]);
 
   const start = useCallback(
     async (goal: string) => {
@@ -305,10 +334,22 @@ export function App() {
               onChange={(e) => setTierOverride(e.target.value as PlannerTier | 'auto')}
             >
               <option value="auto">auto — best available</option>
+              <option value="local">local — on-device, WebGPU</option>
               <option value="cloud">cloud — OpenRouter free tier</option>
               <option value="mock">mock — scripted, no model</option>
             </select>
           </div>
+
+          <div className="field" style={{ marginTop: 7 }}>
+            <label>On-device</label>
+            <button type="button" className="btn" disabled={state.running || load?.progress === 1} onClick={() => void preload()}>
+              {load === null ? 'Load model' : load.progress === 1 ? 'Model ready' : `${Math.round(load.progress * 100)}%`}
+            </button>
+          </div>
+          {load !== null && load.progress < 1 && (
+            <p className="note" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>{load.text}</p>
+          )}
+          {gpu !== null && !gpu.available && <p className="note warn">{gpu.reason}</p>}
           <div className="field" style={{ marginTop: 7 }}>
             <label htmlFor="key">API key</label>
             <input

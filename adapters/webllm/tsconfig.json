@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [],
+    "paths": {
+      "@origo/core": ["../../packages/core/src/index.ts"],
+      "@origo/planner": ["../../packages/planner/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}
