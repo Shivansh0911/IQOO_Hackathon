@@ -139,7 +139,19 @@ export function formatHistory(history: readonly StepSummary[]): string {
 
   const older = history.length - HISTORY_WINDOW;
   const recent = history.slice(-HISTORY_WINDOW);
-  const lines = recent.map((s) => `${s.step}. ${s.action} -> ${s.outcome}${s.note ? ` (${s.note})` : ''}`);
+
+  // An assert outcome is SHOUTED, not mentioned.
+  //
+  // A model that cannot see that its assertion already succeeded has no reason
+  // to stop. This one is kept from the (otherwise reverted) termination-rule
+  // experiment because it costs ZERO system-prompt tokens — see DECISIONS D15
+  // for why the rest was reverted.
+  const outcomeLabel = (outcome: StepSummary['outcome']): string => {
+    if (outcome === 'assert-pass') return 'PASSED';
+    if (outcome === 'assert-fail') return 'FAILED';
+    return outcome;
+  };
+  const lines = recent.map((s) => `${s.step}. ${s.action} -> ${outcomeLabel(s.outcome)}${s.note ? ` (${s.note})` : ''}`);
   const prefix = older > 0 ? [`(${older} earlier step${older === 1 ? '' : 's'} omitted)`] : [];
   return ['HISTORY', ...prefix, ...lines].join('\n');
 }

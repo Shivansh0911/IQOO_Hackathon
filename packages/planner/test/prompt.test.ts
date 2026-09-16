@@ -182,6 +182,15 @@ describe('history compression', () => {
     const lines = formatHistory([step(1, { outcome: 'rejected', note: 'node 99 does not exist' })]);
     expect(lines).toContain('-> rejected (node 99 does not exist)');
   });
+
+  it('SHOUTS an assert outcome rather than mentioning it', () => {
+    const passed = formatHistory([
+      step(2, { action: 'Assert(14, "<500")', outcome: 'assert-pass', note: 'node 14 reads 432; expected < 500' }),
+    ]);
+    expect(passed).toContain('Assert(14, "<500") -> PASSED (node 14 reads 432; expected < 500)');
+    expect(passed).not.toContain('assert-pass');
+    expect(formatHistory([step(2, { outcome: 'assert-fail', note: 'node 11 reads 4.5' })])).toContain('-> FAILED');
+  });
 });
 
 describe('the user prompt', () => {

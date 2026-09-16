@@ -82,17 +82,33 @@ tokens, because the cap holds the ceiling. Density explodes; prompt size does
 not. `offscreen` does the heavy lifting — 10,776 of 13,115 nodes on the
 Wikipedia article — which is the rule behaving exactly as designed.
 
-BAD, and this is the retuning work: at that density the kept 40 are **biased
-toward large layout containers**. The Wikipedia kept list opens with "Site",
-"Main menu", "Personal tools", "Appearance" — page chrome, because ranking is by
-on-screen AREA and the biggest elements on a dense page are wrappers, not
-controls. Only 14 of 40 were clickable.
+BAD: only **14 of the kept 40 are clickable**. The Wikipedia list opens with
+"Site", "Main menu", "Personal tools", "Appearance" — page chrome rather than
+controls.
 
-So the hour-zero expectation is concrete: **the cap will bind immediately on a
-real app, and the AREA ranking is the thing to retune** — most likely by ranking
-interactive nodes above non-interactive ones before applying the cap, rather
-than by raising the cap. Keep the drop-reason histogram logging in place so this
-stays a measurement.
+**And here the first diagnosis was WRONG, which is worth writing down.** The
+obvious explanation was that ranking by on-screen AREA promotes layout wrappers,
+so interactive-first ranking was implemented and measured. It moved the number
+by **0 to 2 nodes**. Wikipedia went 14 → 14 clickable; the search page went
+9 → 11.
+
+The reason is in the histogram: `overCap` is only **+2**, which means just **42
+nodes survive the six drop rules in the first place**. The cap is choosing 40
+out of 42 — there is almost nothing for ranking to do. The constraint is the
+SURVIVOR POOL, not the ordering.
+
+Why do so few survive, and why is so much of what survives non-interactive?
+Wikipedia's chrome carries `aria-label`s, so it legitimately passes `no-signal`
+(which only drops nodes with no text AND no description). That rule is correct in
+general and too permissive here.
+
+So the hour-zero work is **`no-signal`, not ranking**:
+- interactive-first ranking is already shipped — it is strictly better, costs
+  nothing, and will matter on an app screen where many nodes survive
+- the lever to try first on a real app is tightening `no-signal` for
+  non-interactive nodes whose only signal is a description that duplicates a
+  nearby label, and checking the histogram before and after
+- raising the cap is the last resort, not the first
 
 One caveat on method: MDN could not be measured because its Content Security
 Policy blocks an injected script. That is a limitation of the measurement

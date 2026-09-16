@@ -153,3 +153,45 @@ describe('ranking, capping and reindexing', () => {
     expect(r.stats.before).toBe(0);
   });
 });
+
+describe('interactive-first ranking (measured on real sites)', () => {
+  // On a Wikipedia article, ranking by area alone gave 14 clickable nodes out of
+  // 40 — the biggest elements on a dense page are layout wrappers, so the agent
+  // was shown page chrome instead of controls.
+  it('keeps interactive nodes over larger non-interactive ones when the cap binds', () => {
+    const candidates = [
+      // Ten huge wrappers that would each out-rank a button on area alone.
+      ...Array.from({ length: 10 }, (_, i) =>
+        candidate({ id: i, role: 'text', text: `wrapper ${i}`, bounds: bounds(0, i, 900, 900) }),
+      ),
+      // Five small buttons, which are the only things worth acting on.
+      ...Array.from({ length: 5 }, (_, i) =>
+        candidate({ id: 10 + i, role: 'btn', text: `Add ${i}`, clickable: true, bounds: bounds(0, i, 60, 30) }),
+      ),
+    ];
+    const r = pruneAndRank(candidates, { maxNodes: 5 });
+    expect(r.nodes).toHaveLength(5);
+    expect(r.nodes.every((n) => n.clickable)).toBe(true);
+  });
+
+  it('still prefers the larger of two interactive nodes', () => {
+    const r = pruneAndRank(
+      [
+        candidate({ id: 0, role: 'btn', text: 'small', clickable: true, bounds: bounds(0, 0, 20, 20) }),
+        candidate({ id: 1, role: 'btn', text: 'large', clickable: true, bounds: bounds(0, 30, 300, 80) }),
+      ],
+      { maxNodes: 1 },
+    );
+    expect(r.nodes[0]?.text).toBe('large');
+  });
+
+  it('changes nothing when the cap does not bind — every Tiffin screen', () => {
+    const candidates = [
+      candidate({ id: 0, role: 'text', text: 'heading', bounds: bounds(0, 0, 400, 300) }),
+      candidate({ id: 1, role: 'btn', text: 'Add', clickable: true, bounds: bounds(0, 320, 60, 30) }),
+    ];
+    const r = pruneAndRank(candidates);
+    // Traversal order is restored after ranking, so presentation is unchanged.
+    expect(r.nodes.map((n) => n.text)).toEqual(['heading', 'Add']);
+  });
+});

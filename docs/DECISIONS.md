@@ -125,6 +125,39 @@ re-verify on the real host, the honest scope is the better trade. The claim is
 therefore "works with the network off once the model is loaded", never "works
 offline" unqualified.
 
+**D15 · The termination-rule prompt experiment was reverted, because it measurably
+made things worse.**
+The on-device model produced legal actions but looped Asserts without ever
+emitting Finish. Three prompt changes were tried, exactly as specified: an
+explicit termination rule, the assert outcome SHOUTED in history, and an
+Assert→Finish few-shot with history. Result:
+
+| prompt | single-shot invalid rate |
+|---|---|
+| before | **0%** (20/20 valid) |
+| + termination rules + Assert→Finish few-shot | 20%, then **40%** |
+| after revert | **0%** restored |
+
+Neither did it fix the finish gap: two full console runs still ended Blocked.
+The system prompt had grown from ~960 to ~1240 tokens, and a 1.5B model's
+instruction-following degraded as it grew — more rules bought less adherence.
+Only the zero-cost part was kept: history now renders `-> PASSED` / `-> FAILED`
+instead of `-> assert-pass`, which adds nothing to the system prompt.
+
+The finding stands as OPEN: **prompt engineering did not close the finish gap on
+a 1.5B model, and trying harder made the working number worse.**
+
+**D16 · Interactive-first ranking is shipped, and it does NOT fix the real-site
+clickable ratio.**
+Ranking interactive nodes above non-interactive ones before the 40-cap is
+correct, tested and free — a big button should outrank a bigger wrapper. But it
+was implemented to fix Wikipedia's 14-of-40 clickable ratio and it moved that
+number by 0 to 2 nodes. The histogram explains it: `overCap` is +2, so only 42
+nodes survive the drop rules and the cap is choosing 40 of 42. The constraint is
+the SURVIVOR POOL, not the ordering — Wikipedia's chrome carries aria-labels and
+legitimately passes `no-signal`. Tiffin is unaffected either way, because the cap
+never binds there: 438/580/374 tokens unchanged.
+
 **D11 · Tiffin is named a controlled test fixture, in the README, by us.**
 A deployed page cannot read a cross-origin iframe, so a shareable link
 physically cannot drive third-party sites. Rather than let a reader discover that

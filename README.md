@@ -133,12 +133,14 @@ Read-only, phone viewport. This is the number that says most about Android.
 **The token thesis scales:** a 13,115-node page still serialises to 725 tokens,
 because the cap holds the ceiling. `offscreen` alone drops 10,776 of them.
 
-**And the honest other half:** at that density the kept 40 skew toward large
-layout containers — Wikipedia's list opens with "Site", "Main menu", "Personal
-tools" — because ranking is by on-screen area and the biggest elements on a
-dense page are wrappers. Only 14 of 40 were clickable. Ranking interactive nodes
-above non-interactive ones before the cap is the fix, and it is written into
-[docs/PORTING.md](docs/PORTING.md) as hour-zero work rather than pretended away.
+**And the honest other half:** only 14 of Wikipedia's kept 40 are clickable — the
+list opens with "Site", "Main menu", "Personal tools". We implemented the obvious
+fix (rank interactive nodes above non-interactive before the cap, now shipped and
+tested) and **measured that it changes almost nothing**: 14 → 14 on the article,
+9 → 11 on the search page. The histogram says why — `overCap` is only +2, so just
+42 nodes survive the drop rules and the cap is picking 40 of 42. The constraint is
+the survivor pool, not the ordering. [docs/PORTING.md](docs/PORTING.md) records
+that the hour-zero lever is `no-signal`, not ranking.
 
 ### The flows, walked on the production build
 

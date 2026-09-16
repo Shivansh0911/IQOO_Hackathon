@@ -210,8 +210,26 @@ export function pruneAndRank(
     kept.push(c);
   }
 
-  // Pass 3: rank by area, cap, restore traversal order, reindex from 0.
-  const ranked = [...kept].sort((a, b) => area(b.bounds) - area(a.bounds));
+  // Pass 3: rank, cap, restore traversal order, reindex from 0.
+  //
+  // INTERACTIVE FIRST, then by area.
+  //
+  // MEASURED on real sites: ranking by area alone put layout containers at the
+  // top, because on a dense page the biggest elements are wrappers. A Wikipedia
+  // article's kept 40 opened with "Site", "Main menu", "Personal tools" and only
+  // 14 of the 40 were clickable — the agent was being shown page chrome instead
+  // of the controls it needs to act on.
+  //
+  // Area is still the tie-break WITHIN each group, because a big button is more
+  // likely to be the primary action than a small one. This only changes which
+  // nodes survive the cap; on a screen where the cap does not bind (every Tiffin
+  // screen) the kept set is identical.
+  const ranked = [...kept].sort((a, b) => {
+    const aInteractive = interactive(a) ? 1 : 0;
+    const bInteractive = interactive(b) ? 1 : 0;
+    if (aInteractive !== bInteractive) return bInteractive - aInteractive;
+    return area(b.bounds) - area(a.bounds);
+  });
   const winners = ranked.slice(0, maxNodes);
   for (const loser of ranked.slice(maxNodes)) fates.set(loser.id, 'over-cap');
 
