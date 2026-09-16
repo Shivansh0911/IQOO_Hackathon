@@ -163,18 +163,37 @@ export class LocalPlanner implements Planner {
         stop: [...DECODING.stop],
       });
 
+      // DRAIN THE STREAM, NEVER BREAK OUT OF IT.
+      //
+      // The first version broke out of this loop as soon as the JSON object
+      // closed, then called interruptGenerate(). That wedged the engine: the
+      // first call returned, and every call after it hung forever. The Gate 2
+      // harness spent fifteen minutes on one planning call before this was
+      // spotted, which is exactly the failure a demo cannot survive.
+      //
+      // The correct shape is to ASK for the interrupt and keep consuming until
+      // the iterator ends on its own, so WebLLM can finish its own cleanup.
       let raw = '';
+      let interrupted = false;
+      let cancelled = false;
       for await (const chunk of stream) {
-        if (signal.aborted) {
-          await engineResult.value.interruptGenerate();
-          return err({ kind: 'aborted', message: 'Cancelled during planning.', retryable: false });
-        }
         raw += chunk.choices[0]?.delta.content ?? '';
+        if (signal.aborted) {
+          cancelled = true;
+          if (!interrupted) {
+            interrupted = true;
+            await engineResult.value.interruptGenerate();
+          }
+          continue;
+        }
         // A small model that has closed its object has said everything useful;
         // anything after it is the prose we told it not to write.
-        if (raw.includes('}')) break;
+        if (!interrupted && raw.includes('}')) {
+          interrupted = true;
+          await engineResult.value.interruptGenerate();
+        }
       }
-      if (raw.includes('}')) await engineResult.value.interruptGenerate();
+      if (cancelled) return err({ kind: 'aborted', message: 'Cancelled during planning.', retryable: false });
 
       if (raw.trim() === '') {
         return err({ kind: 'empty', message: 'The on-device model returned nothing.', retryable: true });

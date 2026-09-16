@@ -44,6 +44,9 @@ const offline = process.argv.includes('--offline');
  */
 const COEP = process.env.ORIGO_COEP ?? 'off';
 
+/** Fixed, so the model cache survives between runs. See serve(). */
+const ORIGO_PORT = Number(process.env.ORIGO_PORT ?? 4317);
+
 async function serve(dir) {
   const server = createServer(async (req, res) => {
     const rel = decodeURIComponent((req.url ?? '/').split('?')[0]);
@@ -61,8 +64,14 @@ async function serve(dir) {
       res.writeHead(404).end('not found');
     }
   });
-  await new Promise((r) => server.listen(0, r));
-  return { server, port: server.address().port };
+  // A FIXED PORT, deliberately.
+  //
+  // The browser caches model weights per ORIGIN, and a random port is a new
+  // origin every run — so every run re-downloaded 633MB and the "does it work
+  // offline" test could never pass. Same lesson as any cache: the key has to be
+  // stable or the cache is decorative.
+  await new Promise((r) => server.listen(ORIGO_PORT, '127.0.0.1', r));
+  return { server, port: ORIGO_PORT };
 }
 
 /** The goals, one per screen, phrased the way a user would phrase them. */
