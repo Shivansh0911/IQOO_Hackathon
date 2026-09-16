@@ -19,7 +19,10 @@
     "measure": "pnpm --filter @tiffin/app build && node scripts/measure-screens.mjs",
     "shot": "node scripts/screenshot.mjs",
     "dev": "vite apps/demo",
-    "e2e": "node scripts/e2e-demo.mjs"
+    "e2e": "node scripts/e2e-demo.mjs",
+    "record": "node scripts/record-demo.mjs",
+    "measure:sites": "node scripts/measure-real-sites.mjs",
+    "verify:flows": "node scripts/verify-flows.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

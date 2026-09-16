@@ -7,24 +7,37 @@ Commands and checklists, not prose.
 
 ## Which host, and why
 
-**Vercel.** Reasons, in order of how much they matter:
+**Netlify.** Reasons, in order of how much they matter:
 
-1. **Header control per path, in a committed file.** `vercel.json` is in the
-   repo, so the header configuration is reviewed and versioned rather than being
-   a setting somebody clicked. This is the highest-risk part of the deploy — get
-   it wrong and the on-device tier silently dies in production while localhost
-   works fine.
-2. **No COEP needed, and Vercel does not add one.** Some hosts inject
-   cross-origin headers; if `Cross-Origin-Embedder-Policy: require-corp` ever
-   appears, the model-weight fetch is blocked and the local tier breaks. Vercel
-   sends exactly what `vercel.json` says.
-3. Free tier is enough: static output, no serverless function in the critical
-   path, HTTPS and a custom subdomain included.
-4. `pnpm` and a workspace monorepo work without configuration.
+1. **Headers are a plain text file.** `apps/demo/public/_headers` is committed
+   and Vite copies it into `dist` at build time, so the header config ships with
+   the artefact and is hard to get wrong. This is the highest-risk part of the
+   deploy.
+2. **No backend is needed, at all.** Static files plus browser state. No
+   database, no serverless function, no server-side secret. If an OpenRouter key
+   is used it lives in `localStorage` at runtime and is never built in.
+3. Free tier covers it: HTTPS included (which the microphone requires), a
+   subdomain, and enough bandwidth.
+4. `netlify.toml` is committed with the build command and publish directory, so
+   a CLI deploy needs no flags beyond `--prod`.
 
-**Netlify** is a fine alternative and `netlify.toml` is committed too.
-**Cloudflare Pages** works via the `_headers` file, which is also committed
-(`apps/demo/public/_headers`, copied into `dist` by the build).
+**Vercel** works identically and `vercel.json` is committed too.
+**Cloudflare Pages** works via the same `_headers` file.
+
+### The one thing not to "fix"
+
+`Cross-Origin-Embedder-Policy` is **deliberately absent** and must stay absent.
+
+It is widely repeated that COOP **and** COEP are both required for WebGPU. They
+are not. WebGPU needs neither; cross-origin isolation is required for
+`SharedArrayBuffer`, which we do not use. And `COEP: require-corp` **actively
+breaks the on-device tier**: WebLLM fetches the model weights from a
+cross-origin CDN that sends no `Cross-Origin-Resource-Policy` header, so the
+fetch is blocked and the page dies mid-download.
+
+Measured, not assumed — it is the first thing that happened when this was tried.
+If you ever genuinely need isolation, use `credentialless`, never
+`require-corp`.
 
 ---
 
@@ -39,7 +52,7 @@ pnpm install
 
 # 2 · Prove it is healthy BEFORE deploying
 pnpm verify
-#   expect: 5 "ok" tsconfig lines, "boundaries: 8/8 ok", "Tests  282 passed"
+#   expect: 5 "ok" tsconfig lines, "boundaries: 8/8 ok", "Tests  290 passed"
 #   if this fails, do not deploy — fix it first
 
 # 3 · Build what will actually be served
@@ -48,24 +61,23 @@ npx vite build apps/demo
 #   the SECOND js chunk is ~6MB — that is WebLLM, and it is lazy-loaded
 
 # 4 · Deploy
-npm i -g vercel        # once, on this machine
-vercel login           # opens a browser
-vercel --prod
-#   Vercel reads vercel.json: build command, output directory and headers are
-#   already set. Answer "yes" to linking a new project; accept the defaults.
-#   It prints the live URL. That is the link.
+npx netlify-cli deploy --prod --dir=apps/demo/dist
+#   First run opens a browser to authorise, then offers to create a site.
+#   Accept the defaults. It prints a URL like https://origo-loop.netlify.app
+#
+#   --dir is passed explicitly so the deploy ships the artefact you just built
+#   and verified, rather than rebuilding on Netlify's machine.
 ```
 
-**Netlify instead:**
+**Vercel instead:**
 ```bash
-npm i -g netlify-cli
-netlify login
-netlify deploy --prod
-#   publish directory: apps/demo/dist   (netlify.toml already says this)
+npm i -g vercel && vercel login && vercel --prod
+#   Reads vercel.json; build command, output dir and headers are already set.
 ```
 
 **Drag-and-drop, if the CLI misbehaves:** build, then drag `apps/demo/dist` onto
-app.netlify.com/drop. The `_headers` file inside `dist` carries the headers.
+app.netlify.com/drop. The `_headers` file inside `dist` carries the headers, so
+this path is just as correct as the CLI.
 
 ---
 
@@ -113,9 +125,12 @@ Do this **on the live URL**, not on localhost. Config is not evidence.
 
 - [ ] **3 · Press `Demo mode`, wait, then check the strip says `PLANNER local`
       with an amber `on-device`, and `MODEL Qwen2.5-1.5B-Instruct-q4f16_1-MLC`.**
-      This is the one that proves the headers are right. If it stays on `mock`
-      or `cloud` after the model finishes loading, COOP/COEP is wrong —
-      see the failure table below. First load downloads ~1.1GB.
+      This is the one that proves the on-device tier survived deployment. First
+      load downloads ~1.1GB, so give it a few minutes on conference wifi.
+      If it stays on `mock` or `cloud` after loading finishes, open DevTools →
+      Network → click the document → Response Headers. If a
+      `Cross-Origin-Embedder-Policy` header is present, the host injected it and
+      it is blocking the model fetch — remove it. See the failure table below.
 
 - [ ] **4 · Hard-reload (Ctrl+Shift+R) and press `Demo mode` again.**
       Expect it ready in a few seconds, not minutes. That proves the weights
@@ -128,7 +143,7 @@ Then run one goal end to end and confirm a verdict appears.
 ## Redeploying after a change
 
 ```bash
-pnpm verify && npx vite build apps/demo && vercel --prod
+pnpm verify && npx vite build apps/demo && npx netlify-cli deploy --prod --dir=apps/demo/dist
 ```
 About 90 seconds, most of it the build. The URL does not change.
 
@@ -141,7 +156,7 @@ About 90 seconds, most of it the build. The URL does not change.
 | **Strip says `cloud` or `mock` after the model loads** | COOP/COEP wrong, or the host injected `COEP: require-corp` | Open DevTools → Network → click the document → Response Headers. If `Cross-Origin-Embedder-Policy` is present, remove it from the host's settings. It must be absent or `credentialless` |
 | **Model re-downloads on every visit** | The origin changed, or the browser evicted the cache. Weights are cached **per origin** — a preview URL and the production URL are different origins | Use the production URL for the demo. Check DevTools → Application → Cache Storage for a `webllm` entry |
 | **Blank page, console says "Failed to load module"** | Output directory wrong | Must be `apps/demo/dist`. Confirm `dist/index.html` exists after the build |
-| **Mic does nothing / no permission prompt** | Web Speech needs a secure context | Both Vercel and Netlify serve HTTPS, so this is already handled. Do not chase it. If testing locally use `localhost`, which also counts as secure |
+| **Mic does nothing / no permission prompt** | Web Speech needs a secure context | Netlify serves HTTPS, so this is already handled — do not chase it. If testing locally use `localhost`, which also counts as secure |
 | **"This browser has no WebGPU"** | Firefox or Safari, or an old Chrome | Chrome/Edge 113+. The app still runs on the cloud and mock tiers and says so |
 | **Runs are very slow (tens of seconds a step)** | Chrome handed WebGPU the **integrated** GPU | The console prints the adapter name. On a laptop with two GPUs, set Chrome to "High performance" in the OS graphics settings. Measured: 2.3s vs 41s per call for the same model |
 | **`pnpm install` fails with EPERM on Windows** | OneDrive or antivirus holding a file | Retry. If it persists, clone outside OneDrive |

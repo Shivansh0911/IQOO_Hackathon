@@ -30,3 +30,6 @@ Thumbs.db
 
 # a persistent browser profile holding the cached model for demo verification
 .demo-profile/
+
+# recorded demo footage — large, regenerate with pnpm record
+.shots/video/
