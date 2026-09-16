@@ -31,11 +31,11 @@ still need a human decision.
 ## 2 · What makes the idea and the team stand out
 
 > Every agent that operates a screen sends a screenshot to a large cloud model.
-> We read the structured UI tree instead. Measured with a real BPE tokenizer
-> across five screens of our test app: 438 tokens per screen on average, 580 at
-> worst — roughly 3.4× smaller than a screenshot. That size difference is the
-> whole product, because it is what makes a 1B model sufficient, and a 1B model
-> is what makes the agent fit on-device.
+> We read the structured UI tree instead. Measured with a real BPE tokenizer:
+> 438 tokens per screen on our test app, and still only 725 on a 13,000-node
+> Wikipedia article — roughly 3.4× smaller than a screenshot, and it does not
+> grow with page density. That is what makes a 1.5B model sufficient, and a
+> 1.5B model is what fits on the phone.
 >
 > The prototype is deployed and a judge can drive it themselves rather than watch
 > a video. It is not a mockup: the agent reads the live DOM, plans one action at
@@ -62,7 +62,7 @@ runs in the demo console.
 
 ## 5 · Prototype URL
 
-- **Live demo:** `[[ filled in at step 12 ]]`
+- **Live demo:** `[[ deploy with docs/DEPLOY.md — one `vercel --prod` — then paste here ]]`
 - **Repository:** https://github.com/Shivansh0911/IQOO_Hackathon
 
 Not optional for us. It is the single biggest thing separating this submission
@@ -122,11 +122,14 @@ Overclaiming here is checkable and worse than a modest true answer:
 | Institution | BITS Pilani, Hyderabad Campus |
 | Track | Developer Tools · Students |
 | Tokens per screen | 438 mean, 580 worst, 374 best (real BPE tokenizer, 5 screens) |
+| On a real 13,115-node page | 725 tokens — the cap holds the ceiling |
+| On-device invalid-output rate | 0% over 20 calls (Qwen2.5-1.5B); 75% (Llama-3.2-1B) |
+| Offline | verified: model loaded, network cut, 10/10 calls still worked |
 | vs a screenshot | ~3.4× smaller than ~1,500 tokens |
 | Pruning | 180 → 17 nodes on the densest screen (9% kept) |
 | Guardrails | 25-step ceiling · 2-retry limit · stuck detection · destructive gate · cancellation |
 | Cost to run | Zero. No paid API, no paid hosting, no key needed by a visitor. |
-| Tests | 242, including the whole agent loop against a platform with no browser in it |
+| Tests | 286, including the whole agent loop against a platform with no browser in it |
 
 ## What we do NOT claim
 

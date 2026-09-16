@@ -2,7 +2,7 @@
 
 **Tell it what to test. It tests itself.**
 
-> **Live demo:** `[[ deployed at step 12 ]]`
+> **Live demo:** `[[ not yet deployed — see docs/DEPLOY.md; the configs are committed and the build is verified ]]`
 > **Repository:** https://github.com/Shivansh0911/IQOO_Hackathon
 
 An AI agent that operates an app from a spoken goal. It reads the app's
