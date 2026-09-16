@@ -41,6 +41,8 @@ declare global {
     load(): Promise<{ ok: boolean; ms: number; message: string }>;
     read(screenId: string): { tokens: number; json: string; nodes: number } | { error: string };
     plan(goal: string, screenId: string): Promise<PlanAttempt>;
+    /** Raw generation against a caller-supplied prompt, to isolate prefill cost. */
+    raw(system: string, user: string): Promise<{ ms: number; chars: number; text: string }>;
     progress(): { progress: number; text: string } | null;
     reset(): void;
   } | undefined;
@@ -118,6 +120,20 @@ globalThis.__gate2 = {
         ? { actionType: validated.value.action.type }
         : { stage: validated.error.stage, fault: validated.error.fault, message: validated.error.message }),
     };
+  },
+
+  /**
+   * Times one generation with an arbitrary prompt.
+   *
+   * Exists to test one hypothesis: if planning latency is dominated by PREFILL
+   * rather than decode, then the 873-token system prompt — not the ~400-token
+   * screen — is the thing to optimise, and that is a very different engineering
+   * conclusion from "a 1B model is too slow".
+   */
+  raw: async (system, user) => {
+    const started = Date.now();
+    const engineResult = await planner.rawComplete(system, user);
+    return { ms: Date.now() - started, chars: engineResult.length, text: engineResult.slice(0, 160) };
   },
 
   progress: () => progress,

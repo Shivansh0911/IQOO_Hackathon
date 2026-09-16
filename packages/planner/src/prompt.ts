@@ -64,15 +64,25 @@ Use Blocked when the goal cannot be done on this app.`;
 // a model that has seen it once in-context handles it far better than one that
 // has not. The transcript reaches the model exactly as spoken — never
 // translated, never transliterated.
+//
+// MEASURED LESSON, from the Gate 2 harness. An earlier version used the SAME
+// goal ("search for biryani") for the first two examples, to teach that the
+// right action depends on the screen. A 1B model read it as "for this goal,
+// sometimes Tap node 1" and on the real search screen replied
+//   {"type":"Tap","node":0,"reason":"open the first matching biryani restaurant"}
+// — copying the example's phrasing almost verbatim while ignoring the screen it
+// had been given. The examples now use DISTINCT goals, DISTINCT vocabulary
+// (pizza and cafes, never biryani, which is the word our real goals use) and
+// non-zero indices, so there is nothing to copy that would happen to look right.
 export const SECTION_EXAMPLES = `EXAMPLES
 
-GOAL: search for biryani
-ELEMENTS: [{"i":0,"role":"edit","desc":"Search for restaurants or dishes","ed":1},{"i":1,"role":"btn","text":"Cart","clk":1}]
-{"type":"TypeText","node":0,"text":"biryani","reason":"type the search term"}
+GOAL: search for pizza
+ELEMENTS: [{"i":0,"role":"text","text":"FoodCo"},{"i":1,"role":"edit","desc":"Search for restaurants or dishes","ed":1},{"i":2,"role":"btn","text":"Cart","clk":1}]
+{"type":"TypeText","node":1,"text":"pizza","reason":"type the search term into the search field"}
 
-GOAL: search for biryani
-ELEMENTS: [{"i":0,"role":"edit","text":"biryani","ed":1},{"i":1,"role":"btn","text":"Deccan Dastarkhwan Biryani 4.5","clk":1}]
-{"type":"Tap","node":1,"reason":"open the first matching restaurant"}
+GOAL: open the Lotus Cafe listing
+ELEMENTS: [{"i":0,"role":"edit","text":"cafe","ed":1},{"i":1,"role":"btn","text":"Lotus Cafe Coffee 4.2 20 min","clk":1},{"i":2,"role":"btn","text":"Rung Cafe Bakery 3.9","clk":1}]
+{"type":"Tap","node":1,"reason":"open the Lotus Cafe listing"}
 
 GOAL: Tiffin kholo aur check karo cart ka total 500 se kam hai
 ELEMENTS: [{"i":0,"role":"text","text":"Total"},{"i":1,"role":"text","text":"Rs 374"},{"i":2,"role":"btn","text":"Proceed to checkout","clk":1}]

@@ -190,6 +190,30 @@ export class LocalPlanner implements Planner {
     }
   }
 
+  /**
+   * One raw completion with a caller-supplied prompt.
+   *
+   * Diagnostics only, and deliberately not part of the Planner interface: it
+   * exists so the Gate 2 harness can separate prefill cost from decode cost by
+   * varying the prompt length. That distinction decides whether a slow result
+   * means "the model is too big" or "the prompt is too long".
+   */
+  async rawComplete(system: string, user: string): Promise<string> {
+    const engineResult = await this.ensureEngine();
+    if (!engineResult.ok) return `ERROR: ${engineResult.error.message}`;
+    const reply = await engineResult.value.chat.completions.create({
+      stream: false,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      temperature: DECODING.temperature,
+      max_tokens: DECODING.maxTokens,
+      stop: [...DECODING.stop],
+    });
+    return reply.choices[0]?.message.content ?? '';
+  }
+
   /** Frees GPU memory. Called when switching tiers. */
   async unload(): Promise<void> {
     const engine = this.engine;

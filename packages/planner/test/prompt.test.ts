@@ -79,10 +79,32 @@ describe('the system prompt', () => {
     });
 
     it('covers a tap, a type-then-tap, an assert and a Finish(Blocked)', () => {
-      expect(SYSTEM_PROMPT).toContain('{"type":"TypeText","node":0,"text":"biryani"');
-      expect(SYSTEM_PROMPT).toContain('{"type":"Tap","node":1,"reason":"open the first matching restaurant"}');
+      expect(SYSTEM_PROMPT).toContain('{"type":"TypeText","node":1,"text":"pizza"');
+      expect(SYSTEM_PROMPT).toContain('{"type":"Tap","node":1,"reason":"open the Lotus Cafe listing"}');
       expect(SYSTEM_PROMPT).toContain('{"type":"Assert","node":1,"expect":"<500"');
       expect(SYSTEM_PROMPT).toContain('"verdict":"Blocked"');
+    });
+
+    // The Gate 2 harness caught a 1B model copying an example's phrasing
+    // verbatim instead of reading the screen. These two assertions are the
+    // regression guard for that: examples must not share a goal, and must not
+    // use the vocabulary our real goals use.
+    it('gives every example a DISTINCT goal, so there is no pattern to copy', () => {
+      const goals = [...SYSTEM_PROMPT.matchAll(/^GOAL: (.+)$/gm)].map((m) => m[1]);
+      expect(goals.length).toBeGreaterThanOrEqual(5);
+      expect(new Set(goals).size).toBe(goals.length);
+    });
+
+    it('keeps the English examples away from the vocabulary of our real goals', () => {
+      // The Hinglish and Devanagari examples legitimately use real words — that
+      // is the point of them. The ENGLISH examples must not, because those are
+      // the ones a model pattern-matches against an English goal.
+      const goals = [...SYSTEM_PROMPT.matchAll(/^GOAL: (.+)$/gm)].map((m) => m[1] ?? '');
+      const englishGoals = goals.filter((g) => !/[ऀ-ॿ]/.test(g) && !/karo|kholo/.test(g));
+      expect(englishGoals.length).toBeGreaterThanOrEqual(3);
+      for (const goal of englishGoals) {
+        expect(goal.toLowerCase()).not.toContain('biryani');
+      }
     });
   });
 });
