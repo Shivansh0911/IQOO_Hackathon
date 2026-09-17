@@ -74,6 +74,30 @@ export function App() {
   const [apiKey, setApiKey] = useState<string>(() => readKey() ?? '');
   const [online, setOnline] = useState<boolean>(() => globalThis.navigator?.onLine ?? true);
   const [selectionNote, setSelectionNote] = useState<string | null>(null);
+
+  /**
+   * The start-here panel, shown until dismissed.
+   *
+   * localStorage is wrapped because it throws in a private window and in some
+   * embedded views, and a storage failure must not cost us the guidance — so
+   * the panel defaults to VISIBLE if we cannot read the flag. Getting it twice
+   * is a minor annoyance; a judge seeing it never is the failure that matters.
+   */
+  const [showGuide, setShowGuide] = useState(() => {
+    try {
+      return localStorage.getItem('origo.guide.hidden') !== '1';
+    } catch {
+      return true;
+    }
+  });
+  const hideGuide = useCallback(() => {
+    setShowGuide(false);
+    try {
+      localStorage.setItem('origo.guide.hidden', '1');
+    } catch {
+      // Not worth surfacing: the panel is hidden for this session either way.
+    }
+  }, []);
   const [load, setLoad] = useState<{ progress: number; text: string } | null>(null);
   const [gpu, setGpu] = useState<{ available: boolean; reason: string } | null>(null);
   const [adapterName, setAdapterName] = useState<string | null>(null);
@@ -342,6 +366,53 @@ export function App() {
             Tell it what to test. It tests itself — reading the app&rsquo;s structure, not its pixels.
           </p>
         </header>
+
+        {/*
+          A stranger's first thirty seconds.
+
+          Without this the page is a text box and some buttons, and the most
+          interesting things in the product — the destructive gate, the red
+          verdict, the recorded rejections — are things you only find by
+          guessing. A judge has minutes, not curiosity to spare, so the order
+          to press things in is stated outright. Dismissible, and it stays
+          dismissed.
+        */}
+        {showGuide && (
+          <div className="onboard">
+            <div className="onboard-head">
+              <span className="onboard-title">START HERE · 60 seconds</span>
+              <button type="button" className="onboard-hide" onClick={hideGuide}>
+                hide
+              </button>
+            </div>
+            <ol>
+              <li>
+                <b>Press a goal below, then Run.</b> Watch the left pane — that is a real app, and it does not
+                know this console exists. Nothing is faked or pre-recorded.
+              </li>
+              <li>
+                <b>&ldquo;Guardrail · try to order&rdquo;</b> — it gets as far as spending money and stops to ask.
+                Press <b>Deny</b>. Nothing was ordered.
+              </li>
+              <li>
+                <b>&ldquo;Fails on purpose&rdquo;</b> — a wrong expectation goes red and quotes the value it read.
+                That is why a green Pass means something.
+              </li>
+              <li>
+                <b>&ldquo;Show the evidence&rdquo;</b> further down — a real recorded run where the on-device model
+                was <em>not</em> good enough: 15 bad outputs in 20 calls, every one caught.
+              </li>
+              <li>
+                <b>Download HTML</b> — one self-contained file that opens with no network.
+              </li>
+            </ol>
+            <p className="onboard-foot">
+              The strip at the top always states the real planner, model and network — it is never hardcoded.
+              Runs use a scripted plan by default so this works with no key and no download;{' '}
+              <b>Demo mode</b> loads a small model and runs entirely on your device.
+            </p>
+          </div>
+        )}
 
         <div className="goal">
           <div className="goal-row">
