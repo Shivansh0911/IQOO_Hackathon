@@ -18,6 +18,55 @@ export interface CaptureError {
   readonly message: string;
 }
 
+/**
+ * Turns a Web Speech error code into something a person can act on.
+ *
+ * This exists because the recogniser's failures were being dropped on the
+ * floor: `onerror` was declared on the interface and never assigned, so a
+ * `network` or `not-allowed` error ended the session silently. Capture reported
+ * success, the panel showed "listening", the release produced an empty
+ * transcript, and the only available conclusion was "the mic is broken".
+ *
+ * Pure, and exported, so the wording is unit-tested rather than discovered in
+ * front of a judge.
+ */
+export function describeRecognitionError(code: string): CaptureError {
+  switch (code) {
+    case 'not-allowed':
+    case 'service-not-allowed':
+      return {
+        kind: 'permission-denied',
+        message:
+          'The browser blocked speech recognition. Click the padlock in the address bar and allow the microphone, then hold the button again. Typing the goal always works.',
+      };
+    case 'network':
+      return {
+        kind: 'platform-error',
+        message:
+          'Speech recognition needs the network: Chrome sends the audio to Google to transcribe it. The agent itself runs on-device, but the microphone does not. Reconnect, or type the goal.',
+      };
+    case 'audio-capture':
+      return {
+        kind: 'platform-error',
+        message: 'No microphone was found. Check that one is connected and not claimed by another app, then try again.',
+      };
+    case 'no-speech':
+      return { kind: 'no-speech', message: 'Nothing was heard. Hold the button, speak, then release.' };
+    case 'aborted':
+      return {
+        kind: 'aborted',
+        message: 'Listening was interrupted before anything was transcribed. Hold the button again, or type the goal.',
+      };
+    case 'language-not-supported':
+      return {
+        kind: 'platform-error',
+        message: 'This browser cannot transcribe the selected language. Pick another in the dropdown, or type the goal.',
+      };
+    default:
+      return { kind: 'platform-error', message: `Speech recognition failed: ${code || 'unknown error'}.` };
+  }
+}
+
 export interface LiveState {
   /** 0..1, for the amplitude meter. */
   readonly level: number;
@@ -28,6 +77,15 @@ export interface LiveState {
 export interface CaptureOptions {
   readonly locale: VoiceLocale;
   readonly onLive?: (state: LiveState) => void;
+  /**
+   * Called the moment recognition fails, rather than at release.
+   *
+   * Without it the panel keeps showing "listening" through a dead session and
+   * the person holding the button has no idea anything is wrong until they let
+   * go. A failure the UI has not been told about is the same as no failure
+   * handling at all.
+   */
+  readonly onError?: (error: CaptureError) => void;
 }
 
 /** The two vendor spellings, and nothing else. */
@@ -85,6 +143,8 @@ export class VoiceCapture {
   private partial = '';
   private finalTranscript = '';
   private confidence = 0;
+  /** Set by onerror; consulted by stop() so a dead session reports why. */
+  private recognitionError: CaptureError | null = null;
 
   /** Starts listening. Resolves once the mic is live, not when speech ends. */
   async start(options: CaptureOptions): Promise<Result<true, CaptureError>> {
@@ -101,6 +161,7 @@ export class VoiceCapture {
     this.partial = '';
     this.finalTranscript = '';
     this.confidence = 0;
+    this.recognitionError = null;
 
     try {
       this.stream = await globalThis.navigator.mediaDevices.getUserMedia({ audio: true });
@@ -173,6 +234,14 @@ export class VoiceCapture {
       options.onLive?.({ level: Math.min(1, this.peakRms * 12), partial: this.partial });
     };
 
+    // THE BUG THIS FIXES: onerror was never assigned, so every recogniser
+    // failure was silent. Record it and tell the caller straight away.
+    recognition.onerror = (event): void => {
+      const described = describeRecognitionError(event.error);
+      this.recognitionError = described;
+      options.onError?.(described);
+    };
+
     this.recognition = recognition;
     try {
       recognition.start();
@@ -207,8 +276,19 @@ export class VoiceCapture {
     });
     void settled;
 
+    const transcript = this.finalTranscript.trim() || this.partial;
+    // A recogniser that errored and heard nothing is a FAILURE, not an empty
+    // success. Returning ok({transcript: ''}) sent it down the gate path,
+    // which then rejected it for the wrong reason and never mentioned the real
+    // one — which is how "the mic does not work" became unexplainable.
+    if (!transcript && this.recognitionError) {
+      const failure = this.recognitionError;
+      await this.teardown();
+      return err(failure);
+    }
+
     const measured: GateInput = {
-      transcript: this.finalTranscript.trim() || this.partial,
+      transcript,
       confidence: this.confidence,
       peakRms: this.peakRms,
       voicedMs: this.voicedMs,

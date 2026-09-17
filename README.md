@@ -131,10 +131,21 @@ Quote the invalid-output rate; never call it accuracy.
 of 10 planning calls with `navigator.onLine === false`. Reproduce with
 `node scripts/gate2-measure.mjs 2 --warm-then-offline`.
 
-**Does NOT work:** a cold start with no network at all. The model weights are
-cached, but the lazily-imported WebLLM chunk has nothing caching it — there is
-no service worker. So the honest claim is **"works with the network off once the
-model is loaded"**, never "works offline" unqualified.
+**Does NOT work — two things, both scoped deliberately:**
+
+1. **A cold start with no network at all.** The model weights are cached, but
+   the lazily-imported WebLLM chunk has nothing caching it — there is no
+   service worker.
+2. **Voice input.** Speech recognition in Chrome is *not* on-device: the audio
+   goes to a Google service to be transcribed, so the microphone needs the
+   network even when the agent does not. The agent's planning is on-device and
+   offline; the microphone in front of it is not. When that fetch fails the UI
+   now says so in those words rather than appearing to ignore the button —
+   found by a real "the mic is not working" report, see D17.
+
+So the honest claim is **"the agent plans and acts with the network off once the
+model is loaded"**, never "works offline" unqualified, and never implying the
+microphone is offline too.
 
 ### The same reader on real websites — `node scripts/measure-real-sites.mjs`
 

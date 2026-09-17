@@ -92,7 +92,18 @@ export function VoiceInput({
     setRejected(null);
     setProposal(null);
     capture.current = new VoiceCapture();
-    const started = await capture.current.start({ locale, onLive: setLive });
+    const started = await capture.current.start({
+      locale,
+      onLive: setLive,
+      // Surfaced WHILE the button is held, not on release. Recognition can die
+      // a second in — most often because Chrome could not reach the service it
+      // transcribes with — and showing "listening" through that is a lie the
+      // person is holding a button for.
+      onError: (failure) => {
+        setError(failure.message);
+        setListening(false);
+      },
+    });
     if (!started.ok) {
       setError(started.error.message);
       capture.current = null;

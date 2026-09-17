@@ -163,3 +163,30 @@ A deployed page cannot read a cross-origin iframe, so a shareable link
 physically cannot drive third-party sites. Rather than let a reader discover that
 and conclude we hid it, we state it and answer it: the Chrome extension runs the
 same unchanged core against sites we do not own.
+
+**D17 · Speech-recognition failures are reported, and the offline claim is
+scoped to exclude the microphone.**
+`recognition.onerror` was declared on our recogniser interface and never
+assigned. Every Web Speech failure therefore ended the session in silence:
+`start()` returned ok, the panel kept showing "listening", release produced an
+empty transcript, and the transcript then failed the energy gate — which
+reported *that* instead of the real cause. The only conclusion available to a
+user was "the microphone does not work", which is exactly how it was reported to
+us.
+
+Fixed in three parts. `describeRecognitionError` maps each spec code to a
+message that names an action, and is pure and unit-tested so the wording is not
+discovered in front of a judge — one of those tests failed on first run because
+the `aborted` message offered no action, which is the test doing its job.
+`onError` surfaces the failure while the button is still held rather than at
+release. And `stop()` now returns `err` when recognition failed and produced
+nothing, instead of `ok` with an empty transcript.
+
+The accuracy consequence matters more than the bug. Chrome's speech recognition
+is **not** on-device — it uploads audio to a Google service. Our headline is
+on-device inference and network-off operation, and both remain true of the
+agent, but anyone who tested the microphone with wifi off would have found a
+claim that looked false. README now scopes it explicitly: the agent plans and
+acts offline; the microphone in front of it does not. On Android this gap
+closes — `SpeechRecognizer` with `EXTRA_PREFER_OFFLINE` can transcribe on the
+device — which is a point in favour of the port, not against it.
