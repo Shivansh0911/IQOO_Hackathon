@@ -142,42 +142,69 @@ Clips land in `.shots/video/clip-XX-name/clip-XX-name.webm`. The script prints
 each duration; re-run it until all five say `ok`. It is deterministic — the
 scripted tier does the same thing every time.
 
-### 2 · Assemble, in this order
+### 2 · Generate the timeline
 
-```
-[you: opener]            0:00 → 0:18
-clip-02-tokens.webm      0:18 → 0:41   (hold last frame to 0:45)
-clip-01-goal.webm        0:45 → 1:07   (trim ~1s of lead-in)
-clip-03-guardrail.webm   1:10 → 1:22
-clip-05-rejects.webm     1:22 → 1:45   (hold last frame to 1:58)
-[architecture slide]     1:58 → 2:30
-[you: close]             2:30 → 3:00
+```bash
+pnpm assemble
 ```
 
-Cut points: trim the first ~1s of each clip (the page-load flash) and the last
-~0.5s. Nothing else needs cutting.
+This writes `.shots/video/origo-demo.mlt`, a **Shotcut project with the timeline
+already laid out** — you do not place clips by hand against a table of
+timecodes. It reads each clip's real duration off the file, so the layout is
+built from measurement, not from the numbers in this document. It prints what it
+built:
+
+```
+00:00 -> 00:18   [blank 18s]          YOU, TO CAMERA - THE PROBLEM
+00:18 -> 00:46   clip-02-tokens        28.1s +6s freeze
+00:46 -> 01:09   clip-01-goal          23.5s +3s freeze
+01:09 -> 01:21   clip-03-guardrail     11.4s
+01:21 -> 01:58   clip-05-rejects       37.1s +12s freeze
+01:58 -> 02:30   [blank 32s]          YOUR ARCHITECTURE SLIDE
+02:30 -> 03:00   [blank 30s]          YOU, TO CAMERA - WHO, AND WHAT IS OPEN
+TOTAL 03:00
+```
+
+Three things it has already done:
+
+- **Trimmed** the first 0.6s of each clip (the page-load flash) and the last 0.1s.
+- **Frozen** the final frame where a clip is shorter than its narration — a
+  "+6s freeze" holds the last frame rather than speeding the footage up or
+  padding it with filler. Clip-05 gets the largest hold, 12 seconds, because the
+  guardrails section is the differentiator and must not feel rushed.
+- **Left a blank** at each of the three points you supply footage, plus an empty
+  audio track named for the voiceover.
+
+There is no rendered mp4, deliberately: the video needs a voiceover and your own
+footage regardless, so it has to be opened in an editor either way. Generating
+the project means the editing session *starts* with every cut point correct.
+
+`clip-04-fail` is not on the timeline — the script has no slot for it (see the
+deviation note above). Keep it as a spare for the live demo or a judge's
+question.
 
 ### 3 · What you record yourself — one take each
 
 - **0:00–0:18 opener.** Face to camera or voice over deck slide 2. Six lines.
+- **1:58–2:30 architecture.** Your slide, or the repo tree on screen.
 - **2:30–3:00 close.** Face to camera. Six lines. Ends on the open problem.
 
-Both are short enough to do in one take. If you fluff a word, restart rather
-than splice — a visible splice in the closing line undercuts it.
+The opener and close are short enough for one take. If you fluff a word, restart
+rather than splice — a visible splice in the closing line undercuts it.
 
-### 4 · Free tool for assembly
+### 4 · Finish it in Shotcut
 
 **Shotcut** (shotcut.org, free, Windows, no watermark, no account).
 
-1. Download and install. Open it.
-2. **File → Open File** and select all five `.webm` clips at once.
-3. **Timeline → + (Append)** each clip in the order above.
-4. Drag clip edges inward to trim the load flash.
-5. Record your voiceover: **File → Open Other → Audio/Video Device**, or record
-   in Windows Voice Recorder and drag the file onto a second audio track.
-6. Mute the video tracks (the clips have no useful audio): click the speaker
-   icon on each video track.
-7. **File → Export → YouTube preset** → Export File. ~2 minutes to encode.
+1. Install it, then **File → Open File** → `.shots/video/origo-demo.mlt`.
+   The timeline appears fully populated. Nothing to import, nothing to arrange.
+2. Record the voiceover onto the track named *Voiceover*: **File → Open Other →
+   Audio/Video Device**, or record in Windows Voice Recorder and drag the file
+   onto that track.
+3. Drop your three pieces of footage into the three blank slots. If a piece runs
+   long or short, drag the neighbouring clip edge — everything after it shuffles.
+4. The video tracks carry no audio, so there is nothing to mute.
+5. **File → Export → YouTube preset** → Export File. ~2 minutes to encode.
 
 *(Alternatives: CapCut Desktop if you want auto-captions; DaVinci Resolve if you
 already know it. Do not use anything that adds a watermark.)*
