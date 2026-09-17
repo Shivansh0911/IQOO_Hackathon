@@ -88,16 +88,37 @@ stated: the runtime is the OS, the agent acts through the accessibility layer,
 and there is no laptop version of this product. "AI-first thinking" is why the
 on-device tier must be visible in the video and not merely described.
 
-**RUBRIC 2 — ON-SITE ROUND (only if selected, 30 hours in Hyderabad):**
-End product quality 30% · Novelty 20% · Creative device use 15% ·
-Technical depth 15% · Phone-to-laptop bridge 10% · Demo 10%.
-Practical consequence: voice and local inference are the primary paths, not
-toggles. The HTML report must be exportable. Showing guardrails recovering is
-worth more than hiding them.
+**RUBRIC 2 — ON-SITE ROUND (only if selected, 26-27 Sep, Hyderabad):**
+75% jury, 25% read off HackTracker device data — NOT self-reported.
+| weight | dimension | scored by |
+|---|---|---|
+| 30% | End product quality | jury |
+| 20% | Novelty and impact | jury |
+| 15% | Creative phone use — camera, **voice**, on-device AI | **device data** |
+| 15% | Technical depth | jury |
+| 10% | Office Kit usage — phone-to-laptop bridge | **device data** |
+| 10% | Demo and presentation (3-5 min) | jury |
 
-**Continuation is sanctioned.** The organisers' FAQ: "If you submitted a
-prototype at registration, you can keep building on it on-site." So hour zero on
-site continues THIS repo. Nothing in docs/ may hedge about a clean-room rebuild.
+Practical consequences, and they are sharper than the old note:
+- **Voice is inside a 15% bucket measured from the device, not from our pitch.**
+  It has to actually run on the phone and be observed doing so. On Android that
+  means SpeechRecognizer with EXTRA_PREFER_OFFLINE, which is also the only way
+  the offline claim survives.
+- **Office Kit usage is 10% and also measured.** Use the bridge for real work,
+  not as a demo prop.
+- **The final demo must run on the iQOO phone.** A laptop may assist the pitch,
+  but the product runs on the device.
+- The HTML report must be exportable. Showing guardrails recovering is worth
+  more than hiding them.
+
+**Continuation: the rules say two things, and both go in the record.**
+The FAQ says "If you submitted a prototype at registration, you can keep
+building on it on-site." The website's Build rules say "Original work only: code
+written during the event window" and "carrying in a completed app is not" fine.
+Our position reconciles them — the portable core is a platform-agnostic library
+that cannot run on a phone, the Android adapter is new event-window work, and the
+repo is public and declared — but we ASK an organiser at check-in rather than
+assume the generous reading. See docs/IF_SELECTED.md.
 OpenRouter credits are confirmed in writing for the event, which makes the
 cloud-tier fallback funded rather than hypothetical.
 

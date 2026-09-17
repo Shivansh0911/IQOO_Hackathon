@@ -8,11 +8,37 @@ unbuilt, and what this document plans, is the Android adapter.
 before you build on it. Every number in this repo came from a script, and twice
 that habit stopped us shipping a claim that was false.
 
-## Hour zero starts from THIS REPO. We do not restart.
+## Hour zero starts from THIS REPO — and the rules say two things about that
 
-The organisers' FAQ says it plainly: *"If you submitted a prototype at
-registration, you can keep building on it on-site."* So continuing this codebase
-at the venue is explicitly sanctioned, and the 30-hour plan assumes it.
+**Read both before check-in, because they are in tension.**
+
+The FAQ: *"If you submitted a prototype at registration, you can keep building
+on it on-site."*
+
+The website's Build rules: *"Original work only: code written during the event
+window. No shipping a pre-built product"* and *"Open-source libraries and
+frameworks are fine with attribution; carrying in a completed app is not."*
+
+Those can be reconciled, and our situation reconciles them cleanly, but do not
+walk in assuming the generous reading. **The posture:**
+
+1. **Declare it.** The prototype URL and this public repository go in the Phase 1
+   submission. Nothing is hidden, and the commit history is timestamped and
+   visible, which is the evidence either way.
+2. **What we carry in is a library, not a product.** The portable core is a
+   platform-agnostic agent with no Android code in it at all — it cannot run on
+   a phone as it stands. That is the same relationship as any open-source
+   dependency, and it is attributed.
+3. **What we build on site is genuinely new.** The Android adapter — the
+   accessibility-tree reader, the gesture executor, the MediaPipe planner — does
+   not exist. That is the event-window code, and it is where the 30 hours go.
+4. **Ask an organiser at check-in and get the answer in writing.** If they read
+   it the strict way, we still have a plan: the adapter is new work regardless,
+   and the core is public and attributable. Better to raise it ourselves in hour
+   zero than to have it raised at judging.
+
+Do not describe the web build as "the product" on site. It is the prototype the
+idea was selected on, and the phone build is the product.
 
 What that is worth, concretely: the loop, the validator, the seven action
 schemas, the six-reason pruning policy, the guardrails, the report generator and
