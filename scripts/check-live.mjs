@@ -230,6 +230,50 @@ async function main() {
   }
   record('guardrails panel', guardrails.detail, guardrails.ok);
 
+  // ── 7b · Can a HUMAN actually reach the lower panels? ─────────────────────
+  //
+  // This check exists because its absence hid a real defect. The console had
+  // overflow:hidden with a flex:1 step log, so the voice panel, the report
+  // buttons, the guardrails evidence and the settings all sat below the fold
+  // with no scrollbar — unreachable with a mouse. Every earlier check passed
+  // anyway, because scrollIntoViewIfNeeded() scrolls a container
+  // programmatically even when overflow is hidden. Presence is not reach.
+  const reach = await page.evaluate(() => {
+    const scrollableAncestor = (el) => {
+      for (let node = el.parentElement; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 2) return true;
+        // A clipped ancestor that cannot scroll is exactly the trap.
+        if (style.overflowY === 'hidden' && node.scrollHeight > node.clientHeight + 2) return false;
+      }
+      return true;
+    };
+
+    const named = (pattern) =>
+      [...document.querySelectorAll('button')].find((b) => pattern.test(b.textContent ?? '')) ?? null;
+
+    const targets = {
+      voice: named(/Hold to speak/i),
+      report: named(/Download HTML/i),
+      guardrails: named(/Show the evidence|Hide the evidence/i),
+      settings: document.querySelector('select'),
+    };
+
+    const out = {};
+    for (const [label, el] of Object.entries(targets)) {
+      out[label] = !el ? 'MISSING' : scrollableAncestor(el) ? 'reachable' : 'TRAPPED behind a clipped container';
+    }
+    return out;
+  });
+  const trapped = Object.entries(reach).filter(([, v]) => v !== 'reachable');
+  record(
+    'lower panels reachable by scrolling',
+    trapped.length
+      ? trapped.map(([k, v]) => `${k}: ${v}`).join(' · ')
+      : `all reachable — ${Object.keys(reach).join(', ')}`,
+    trapped.length === 0,
+  );
+
   // ── 8 · Voice is present and honest about itself ──────────────────────────
   const voice = await page.evaluate(() => {
     const hold = [...document.querySelectorAll('button')].find((b) => /hold to speak/i.test(b.textContent ?? ''));

@@ -124,10 +124,23 @@ button:disabled {
   overflow: hidden;
 }
 
+/*
+ * MEASURED DEFECT: the console did not scroll, so everything below the step
+ * log — the voice panel, the report buttons, the guardrails evidence and the
+ * settings — was UNREACHABLE with a mouse on desktop. `.log` had flex: 1, so
+ * it consumed every remaining pixel, and `.console` had overflow: hidden, so
+ * there was no scrollbar to get past it.
+ *
+ * Worse, our own automation hid it: scrollIntoViewIfNeeded() scrolls a
+ * container programmatically even when overflow is hidden, so every check
+ * reported the voice control as present while a human could not get to it.
+ * Reported by a user, not by a test — and check-live.mjs now asserts
+ * reachability instead of mere presence.
+ */
 .console {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   min-width: 0;
 }
 
@@ -303,10 +316,14 @@ button:disabled {
 /* ── Step log ─────────────────────────────────────────────────────────────── */
 
 .log {
-  flex: 1;
+  /* NOT flex: 1. That made the log eat the whole column and pushed every
+     panel below it out of reach. Bounded height, its own scrollbar, and the
+     console scrolls past it. */
+  flex: none;
+  max-height: 46vh;
   overflow-y: auto;
   padding: 10px 0 24px;
-  min-height: 0;
+  min-height: 120px;
 }
 
 .log-empty {
