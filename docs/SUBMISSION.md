@@ -21,7 +21,9 @@ still need a human decision.
 > compact JSON. One screen costs about 438 tokens instead of a screenshot's
 > ~1,500, and at that size a 1.5-billion-parameter model is enough to choose the
 > next action. So the agent fits on the device: private, instant, and working
-> with the network off once the model is loaded. It taps, types, scrolls and
+> with the network off once the model is loaded. The microphone is on-device too:
+> speech is transcribed in the app by a small Whisper model, so no audio and no
+> screen content is uploaded anywhere. It taps, types, scrolls and
 > verifies, then produces a test report with per-step evidence and a pass/fail
 > verdict.
 
@@ -54,7 +56,11 @@ still need a human decision.
 > same interface a screen reader uses — so it drives any installed app without
 > that app's cooperation, an SDK, or root. There is no laptop version of this
 > product. On-device inference is not a feature bolted on; it is the reason the
-> idea works at all, because the UI tree never leaves the handset.
+> idea works at all, because the UI tree never leaves the handset — and neither
+> does the audio: we replaced the browser's cloud speech API with an on-device
+> Whisper model after measuring that the cloud one returned nothing at all on
+> our network, which also makes the prototype a closer analogue of the Android
+> build's offline SpeechRecognizer.
 
 *(221 words.)*
 

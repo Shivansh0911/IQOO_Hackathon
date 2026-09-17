@@ -136,20 +136,31 @@ of 10 planning calls with `navigator.onLine === false`. Reproduce with
 1. **A cold start with no network at all.** The model weights are cached, but
    the lazily-imported WebLLM chunk has nothing caching it — there is no
    service worker.
-2. **Voice input — and on some networks it does not work at all.** Speech
-   recognition in Chrome is *not* on-device: the audio goes to a Google cloud
-   service to be transcribed, so the microphone needs the network even when the
-   agent does not. Measured on our own machine, with a synthesised speech clip
-   fed to the browser as its microphone: Chrome fires `start` and `audiostart`,
-   then ends the session with **no transcript and no error code** — the same
-   with and without our level meter, in Chromium and in real Chrome, with and
-   without automation flags. Nothing in this repository can fix that; the app
-   now reports it precisely instead of appearing to ignore the button, and
-   `pnpm mic:doctor` reproduces the test in your own browser. See D17 and D18.
-   **Typing a goal does everything voice does** — no demo, video or flow check
-   depends on the microphone. On Android this reverses: `SpeechRecognizer` with
-   `EXTRA_PREFER_OFFLINE` transcribes on the handset, so the port removes the
-   only remote dependency the product has.
+2. **Voice input, on the BROWSER engine only.** Chrome's Web Speech API is not
+   on-device: it uploads the audio to a Google cloud service. Measured here,
+   with a synthesised speech clip fed to the browser as its microphone, it
+   fires `start` and `audiostart` and then ends with **no transcript and no
+   error code** — the same in Chromium and in real Chrome, with and without our
+   level meter, with and without automation flags (D18). Nothing in our code
+   could fix that, so we stopped depending on it.
+
+   **Voice now runs on the device.** Press *Load on-device voice* and
+   Whisper-tiny (multilingual, ~40MB, cached after the first fetch) transcribes
+   in the tab — **the audio never leaves the machine**. Measured on the live
+   site: model ready in 18s, then 3.8s of speech transcribed in **2222ms**, and
+   the panel names the engine, the model and the timing every time.
+
+   The honest cost: Whisper reports no confidence score, so that one gate does
+   not apply and the UI says so; the energy, filler and surprise-script gates
+   still run and the transcript is still only a proposal a human confirms. And
+   Whisper invents speech from silence, so audio under the RMS floor is refused
+   before the model and its known stock phrases are rejected after it (D19).
+
+   This also makes the prototype more faithful, not less: the Android build
+   transcribes on the handset with `SpeechRecognizer` and
+   `EXTRA_PREFER_OFFLINE`, so an on-device browser engine is the closer
+   analogue. Typing a goal still does everything voice does, and no flow check
+   depends on the microphone.
 
 So the honest claim is **"the agent plans and acts with the network off once the
 model is loaded"**, never "works offline" unqualified, and never implying the
