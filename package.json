@@ -27,6 +27,7 @@
     "verify:video": "node scripts/verify-video.mjs",
     "check:live": "node scripts/check-live.mjs",
     "check:logic": "node scripts/check-logic.mjs",
+    "mic:doctor": "node scripts/mic-doctor.mjs",
     "record:ondevice": "node scripts/record-ondevice.mjs",
     "measure:sites": "node scripts/measure-real-sites.mjs",
     "verify:flows": "node scripts/verify-flows.mjs"
