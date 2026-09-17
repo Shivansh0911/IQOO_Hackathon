@@ -22,7 +22,7 @@ requires a paid licence, a paid API or a paid host.
 | [vite](https://vite.dev) | 5.4.21 | MIT | Dev server and static builds |
 | @vitejs/plugin-react | 4.7.0 | MIT | React fast refresh and JSX |
 | [esbuild](https://esbuild.github.io) | 0.28.2 | MIT | Bundles the extension's content script and service worker |
-| [vitest](https://vitest.dev) | 2.1.9 | MIT | 290 tests |
+| [vitest](https://vitest.dev) | 2.1.9 | MIT | 296 tests |
 | [jsdom](https://github.com/jsdom/jsdom) | 25.0.1 | MIT | A DOM for the reader's flag tests (pinned to 25: 27 breaks on Node 20) |
 | [playwright](https://playwright.dev) | 1.63.0 | Apache-2.0 | Real-browser measurement — pruning, tokens, end-to-end runs, Gate 2 |
 | [gpt-tokenizer](https://github.com/niieani/gpt-tokenizer) | 4.0.0 | MIT | Real BPE token counts, so the deck quotes a measurement |

@@ -115,9 +115,15 @@ produces a red Fail, and this is that.
 **Do not cut the last two lines.** Stating a limitation reads as confidence, and
 it answers the question a judge was about to ask.
 
+> **The names are shown, not spoken.** The synthesiser mispronounced both of
+> them, and a mangled name in the closing seconds is worse than no name at all.
+> They are set in type on the closing card instead, where they are legible and
+> correctly spelled. If you re-record this line in your own voice, say the names
+> — a human reading them is better than either option.
+
 | # | narration | secs |
 |---|---|---|
-| 1 | "We're Tushya Jain and Shivansh Ojha, from BITS Pilani Hyderabad." | 4 |
+| 1 | "We are a team from BITS Pilani, Hyderabad campus." | 4 |
 | 2 | "Everything in this video is in the repository. Every number has a script that reproduces it." | 5 |
 | 3 | "And one thing is still open." | 3 |
 | 4 | "Which small model reliably finishes a multi-step task." | 4 |

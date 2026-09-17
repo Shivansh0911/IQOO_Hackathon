@@ -73,6 +73,22 @@ export const DEMO_GOALS: readonly DemoGoal[] = [
   },
 ];
 
+/**
+ * Whether the scripted tier has a real plan for this goal.
+ *
+ * The UI needs this to warn BEFORE a run rather than after. A judge who types
+ * their own goal on the scripted tier gets an honest `Blocked`, which is
+ * correct but reads as breakage if it arrives with no warning — so the console
+ * says so up front, while the goal is still being typed.
+ *
+ * Exported from here, not reimplemented in the UI, so the answer can never
+ * disagree with what scriptFor() actually does.
+ */
+export function isScriptedGoal(goal: string): boolean {
+  const trimmed = goal.trim().toLowerCase();
+  return DEMO_GOALS.some((g) => g.goal.toLowerCase() === trimmed);
+}
+
 export function scriptFor(goal: string): readonly ScriptStep[] {
   const trimmed = goal.trim().toLowerCase();
   const exact = DEMO_GOALS.find((g) => g.goal.toLowerCase() === trimmed);

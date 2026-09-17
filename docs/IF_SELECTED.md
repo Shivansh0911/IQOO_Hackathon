@@ -95,7 +95,7 @@ This is what you tell a mentor who asks how far along you are.
 | `packages/agent` | 602 | 696 | the loop and every guardrail, RunEvent stream |
 | `packages/planner` | 711 | 495 | Planner interface, pure prompt assembly, cloud + scripted tiers |
 | `packages/report` | 492 | 241 | the self-contained HTML report |
-| **total portable** | **3,441** | **2,395** | **290 tests** |
+| **total portable** | **3,441** | **2,395** | **296 tests** |
 
 None of it contains a single line of web-specific code. That is enforced two
 ways, not trusted: `packages/**` compiles with `lib: ES2022` and **no DOM**, so

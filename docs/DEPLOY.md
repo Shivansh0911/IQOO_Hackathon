@@ -87,7 +87,7 @@ difference cannot break the demo an hour before the deadline.
 ### Route A · Upload the folder you already verified (recommended)
 
 ```bash
-pnpm verify                  # 290 tests, boundaries 8/8
+pnpm verify                  # 296 tests, boundaries 8/8
 npx vite build apps/demo     # writes apps/demo/dist
 node scripts/verify-flows.mjs # 8/8 against that exact build
 ```

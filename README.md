@@ -2,7 +2,7 @@
 
 **Tell it what to test. It tests itself.**
 
-> **Live demo:** `[[ not yet deployed — see docs/DEPLOY.md; the configs are committed and the build is verified ]]`
+> **Live demo:** https://origoloop.netlify.app
 > **Repository:** https://github.com/Shivansh0911/IQOO_Hackathon
 
 An AI agent that operates an app from a spoken goal. It reads the app's
@@ -245,7 +245,7 @@ defect, not a cosmetic one.
 pnpm install
 pnpm dev            # the demo: Tiffin + the console
 pnpm dev:debug      # the debug panel: the app beside what the agent sees
-pnpm verify         # typecheck → lint → boundaries → 290 tests
+pnpm verify         # typecheck → lint → boundaries → 296 tests
 pnpm measure        # the pruning and token table above, from a real browser
 pnpm e2e            # drive the built demo end to end in Chromium
 node scripts/build-extension.mjs   # the Chrome extension

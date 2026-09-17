@@ -143,7 +143,7 @@ export function statementCard({ index, heading, lines }) {
  * PROVEN/PROVEN/OPEN framing is the same one used in the README, and softening
  * it here to look better would contradict the repo a judge can read.
  */
-export function closingCard({ repo, liveUrl, proven, open }) {
+export function closingCard({ repo, liveUrl, proven, open, names, affiliation }) {
   const provenRows = proven
     .map(
       (line) => `
@@ -165,9 +165,18 @@ export function closingCard({ repo, liveUrl, proven, open }) {
         <span style="font-size:41px;line-height:1.28">${open}</span>
       </li>
     </ul>
-    <div style="margin-top:64px;padding-top:40px;border-top:2px solid ${PALETTE.hairline};font-family:${FONT_STACKS.mono};font-size:31px;line-height:1.75">
-      <div class="dim">REPO &nbsp;&nbsp;<span style="color:${PALETTE.paper}">${repo}</span></div>
-      <div class="dim">LIVE DEMO &nbsp;&nbsp;<span class="amber">${liveUrl}</span></div>
+    <div style="margin-top:52px;padding-top:36px;border-top:2px solid ${PALETTE.hairline}">
+      <!-- The names are SET here rather than spoken: the synthesiser mangled
+           both, and a mispronounced name in the closing seconds is worse than
+           a silent one. In type they are legible and spelled right. -->
+      <div style="font-family:${FONT_STACKS.display};font-size:46px;letter-spacing:0.01em;margin-bottom:8px">
+        ${names.join('&nbsp;&nbsp;·&nbsp;&nbsp;')}
+      </div>
+      <div class="kicker" style="font-size:23px;margin-bottom:26px">${affiliation}</div>
+      <div style="font-family:${FONT_STACKS.mono};font-size:29px;line-height:1.7">
+        <div class="dim">REPO &nbsp;&nbsp;<span style="color:${PALETTE.paper}">${repo}</span></div>
+        <div class="dim">LIVE DEMO &nbsp;&nbsp;<span class="amber">${liveUrl}</span></div>
+      </div>
     </div>
   `,
   );

@@ -44,7 +44,9 @@ const W = 1920;
 const H = 1080;
 
 const REPO = 'github.com/Shivansh0911/IQOO_Hackathon';
-const TEAM = 'Tushya Jain · Shivansh Ojha — BITS Pilani Hyderabad';
+const NAMES = ['Tushya Jain', 'Shivansh Shekher Ojha'];
+const AFFILIATION = 'BITS Pilani, Hyderabad Campus';
+const TEAM = `${NAMES.join(' · ')} — ${AFFILIATION}`;
 
 /** --url replaces the closing card's live-demo line, so a re-render after
  * deploying is one command. */
@@ -470,6 +472,8 @@ async function main() {
         'Nothing unvalidated ever reaches the app: 15 bad model outputs in 20 calls, all caught.',
       ],
       open: 'No small model has yet finished a multi-step task on the local tier. The architecture is done; the model is the gap.',
+      names: NAMES,
+      affiliation: AFFILIATION,
     }),
   });
 

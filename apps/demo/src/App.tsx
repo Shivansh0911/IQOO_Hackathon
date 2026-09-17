@@ -26,7 +26,7 @@ import { StepLog } from './components/StepLog.js';
 import { ReportActions } from './components/ReportActions.js';
 import { GuardrailsPanel } from './components/GuardrailsPanel.js';
 import { VoiceInput } from './components/VoiceInput.js';
-import { DEMO_GOALS, scriptFor } from './demo-goals.js';
+import { DEMO_GOALS, isScriptedGoal, scriptFor } from './demo-goals.js';
 import { ScriptedPlanner } from './scripted-planner.js';
 import './styles.css';
 
@@ -398,6 +398,25 @@ export function App() {
               </button>
             ))}
           </div>
+
+          {/*
+            Told BEFORE the run, not after.
+
+            A free-form goal on the scripted tier ends Blocked, which is the
+            honest outcome — but arriving with no warning it reads as a broken
+            demo, and that is exactly what a judge does first: ignore the
+            example buttons and type their own goal. So the console says what
+            will happen while they are still typing, and names the two ways to
+            make it work.
+          */}
+          {!state.running && state.goal.trim().length > 0 && !isScriptedGoal(state.goal) && facts.tier === 'mock' && (
+            <p className="note warn">
+              This is not one of the example goals, and the scripted tier has no plan for it — pressing Run will
+              end <b>Blocked</b>. To run a goal of your own, either press <b>Demo mode</b> above to load the
+              on-device model (~1.1GB, once, then it works offline), or paste an OpenRouter key in Settings below.
+              The example buttons run the real loop with no key and no download.
+            </p>
+          )}
 
           {selectionNote && <p className="note warn">{selectionNote}</p>}
         </div>
