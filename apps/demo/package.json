@@ -10,17 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@origo/core": "workspace:*",
-    "@origo/agent": "workspace:*",
-    "@origo/planner": "workspace:*",
-    "@origo/adapter-web": "workspace:*",
     "@origo/adapter-android": "workspace:*",
+    "@origo/adapter-web": "workspace:*",
+    "@origo/adapter-webllm": "workspace:*",
+    "@origo/adapter-whisper": "workspace:^",
+    "@origo/agent": "workspace:*",
+    "@origo/core": "workspace:*",
+    "@origo/planner": "workspace:*",
+    "@origo/report": "workspace:*",
     "@tiffin/app": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "zustand": "^4.5.5",
-    "@origo/report": "workspace:*",
-    "@origo/adapter-webllm": "workspace:*"
+    "zustand": "^4.5.5"
   },
   "devDependencies": {
     "@types/react": "^18.3.11",

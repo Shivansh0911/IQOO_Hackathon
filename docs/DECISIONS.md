@@ -233,3 +233,48 @@ service; the agent does not.** On Android this inverts — `SpeechRecognizer` wi
 remote dependency the product has. That is a point for the Android story, and it
 is why nothing in the demo, the video or the flow checks depends on the
 microphone.
+
+**D19 · Voice runs on-device, because the cloud engine does not run at all — and
+because the phone build will not use a cloud engine either.**
+D18 established that Chrome's Web Speech API returns nothing on this network,
+with no error code, and that no change to our code could fix it. Two ways
+forward: document the limitation, or make voice independent of Google. We took
+the second, for a reason beyond the bug.
+
+The Android build transcribes on the handset — `SpeechRecognizer` with
+`EXTRA_PREFER_OFFLINE`. A web prototype that ships microphone audio to Google is
+therefore the *least* faithful part of the replica, in exactly the area the
+on-site rubric measures from device data. Whisper in the browser is both the fix
+and the closer analogue.
+
+`adapters/whisper` is a new swappable adapter: Whisper-tiny (multilingual) via
+transformers.js, loaded on request, ~40MB cached after the first fetch, lazy
+chunked so first paint is untouched (823kB gzipped to 200kB, separate from the
+entry bundle). Measured end to end in real Chrome with a speech WAV fed as the
+microphone: model ready in 8s, 3.6s of audio transcribed in **2046ms, on
+device**, and the panel names the engine and the timing every time.
+
+Three things stated rather than papered over:
+
+1. **Whisper reports no confidence**, so `confidence` comes back 0 — which the
+   core gate already treats as "not reported" and skips. That is a genuine
+   reduction in defences and the panel says so in those words. The energy,
+   filler and surprise-script gates all still run, and the transcript is still
+   only ever a proposal a human confirms.
+2. **Whisper hallucinates on silence** — it emits "Thank you.", "[BLANK_AUDIO]",
+   subtitle credits. An invented instruction is the one output this project
+   exists to never execute, so audio below the RMS floor is refused *before* the
+   model, and the model's known stock phrases are rejected after it. Both are
+   pure functions with tests.
+3. **Audio preparation is tested, not trusted.** Whisper wants mono 16kHz
+   Float32; Chrome gives 48kHz and sometimes stereo. Getting that wrong does not
+   throw, it produces confident transcriptions of nonsense. So the channel
+   averaging and the resample are pure and have tests that assert the waveform
+   survived, not just the sample count.
+
+The one thing NOT verified: quality on a real human voice. The only microphone
+available here is a synthetic TTS clip at 16kHz, which is close to the hardest
+input this model can be given — it returned "very on" for "biryani search karo",
+which is recognisably the pipeline working and the audio being poor. Real speech
+should do better; if it does not, `DEFAULT_WHISPER_MODEL` is one constant and
+whisper-base is the next size up.

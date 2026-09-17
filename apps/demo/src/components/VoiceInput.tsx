@@ -21,8 +21,15 @@ import {
   mergeCorrections,
   VOICE_LOCALES,
 } from '@origo/core';
-import type { CorrectionEntry, GateVerdict, Substitution, VoiceLocale } from '@origo/core';
+import type { CorrectionEntry, GateInput, GateVerdict, Substitution, VoiceLocale } from '@origo/core';
 import { VoiceCapture, isVoiceSupported } from '@origo/adapter-web';
+import {
+  DEFAULT_WHISPER_MODEL,
+  WhisperCapture,
+  isWhisperLoaded,
+  loadWhisper,
+  loadedWhisperModel,
+} from '@origo/adapter-whisper';
 
 const CORRECTIONS_KEY = 'origo.voice.corrections';
 const LOCALE_KEY = 'origo.voice.locale';
@@ -87,10 +94,86 @@ export function VoiceInput({
 
   const supported = isVoiceSupported();
 
+  /**
+   * The on-device engine, loaded on request.
+   *
+   * Two engines, and the difference is not cosmetic: the browser's Web Speech
+   * API uploads the audio to Google, and Whisper here does not. On the network
+   * this was built on the Google service does not answer at all — recognition
+   * ends with no transcript and no error — so on-device is also the only one
+   * that works (D18). Whichever ran is named on screen afterwards.
+   */
+  const whisper = useRef<WhisperCapture | null>(null);
+  const [whisperReady, setWhisperReady] = useState(isWhisperLoaded);
+  const [whisperLoad, setWhisperLoad] = useState<{ progress: number; text: string } | null>(null);
+  const [lastEngine, setLastEngine] = useState<string | null>(null);
+
+  const loadVoiceModel = useCallback(async () => {
+    setError(null);
+    setWhisperLoad({ progress: 0, text: 'starting' });
+    const result = await loadWhisper(DEFAULT_WHISPER_MODEL, (report) => setWhisperLoad(report));
+    if (!result.ok) {
+      setError(result.error.message);
+      setWhisperLoad(null);
+      return;
+    }
+    setWhisperLoad(null);
+    setWhisperReady(true);
+  }, []);
+
+  /**
+   * The five defences, applied identically whichever engine transcribed.
+   *
+   * Extracted deliberately. With two capture paths it would be very easy for
+   * one of them to skip a gate, and the gates are the entire reason a spoken
+   * goal is safe to act on. There is exactly one route from audio to a
+   * proposal, and both engines take it.
+   */
+  const accept = useCallback(
+    async (measured: GateInput) => {
+      // Defence 1: the gates. A discarded transcript can never start a run.
+      const verdict = applyGates(measured);
+      if (!verdict.accepted) {
+        setRejected(verdict);
+        return;
+      }
+
+      // Defence 4 and 5: learned corrections first, then the on-screen lexicon.
+      const lexicon = buildLexicon(screenTexts, ['Tiffin']);
+      const matched = applyLexicon(measured.transcript, lexicon, correctionsFor(corrections, locale));
+
+      setProposal({
+        heard: measured.transcript,
+        proposed: matched.text,
+        substitutions: matched.substitutions,
+        // Defence 2: a script the pinned locale should not produce.
+        surpriseScript: hasSurpriseScript(measured.transcript, locale),
+        confidence: measured.confidence,
+      });
+      setEdited(matched.text);
+    },
+    [corrections, locale, screenTexts],
+  );
+
   const begin = useCallback(async () => {
     setError(null);
     setRejected(null);
     setProposal(null);
+
+    // On-device wins when it is loaded: it is both the private path and, on
+    // this network, the working one.
+    if (whisperReady) {
+      whisper.current = new WhisperCapture();
+      const started = await whisper.current.start({ onLive: (state) => setLive({ level: state.level, partial: '' }) });
+      if (!started.ok) {
+        setError(started.error.message);
+        whisper.current = null;
+        return;
+      }
+      setListening(true);
+      return;
+    }
+
     capture.current = new VoiceCapture();
     const started = await capture.current.start({
       locale,
@@ -110,9 +193,34 @@ export function VoiceInput({
       return;
     }
     setListening(true);
-  }, [locale]);
+  }, [locale, whisperReady]);
 
   const end = useCallback(async () => {
+    const onDevice = whisper.current;
+    if (onDevice) {
+      setListening(false);
+      setLive({ level: 0, partial: 'transcribing on device…' });
+      const heard = await onDevice.stop(locale);
+      whisper.current = null;
+      setLive({ level: 0, partial: '' });
+      if (!heard.ok) {
+        setError(heard.error.message);
+        return;
+      }
+      setLastEngine(
+        `on-device · ${loadedWhisperModel() ?? DEFAULT_WHISPER_MODEL} · ` +
+          `${heard.value.seconds.toFixed(1)}s of audio transcribed in ${Math.round(heard.value.transcribeMs)}ms`,
+      );
+      await accept({
+        transcript: heard.value.transcript,
+        confidence: heard.value.confidence,
+        peakRms: heard.value.peakRms,
+        voicedMs: heard.value.voicedMs,
+        locale,
+      });
+      return;
+    }
+
     const active = capture.current;
     if (!active) return;
     setListening(false);
@@ -122,28 +230,9 @@ export function VoiceInput({
       setError(measured.error.message);
       return;
     }
-
-    // Defence 1: the gates. A discarded transcript can never start a run.
-    const verdict = applyGates(measured.value);
-    if (!verdict.accepted) {
-      setRejected(verdict);
-      return;
-    }
-
-    // Defence 4 and 5: learned corrections first, then the on-screen lexicon.
-    const lexicon = buildLexicon(screenTexts, ['Tiffin']);
-    const matched = applyLexicon(measured.value.transcript, lexicon, correctionsFor(corrections, locale));
-
-    setProposal({
-      heard: measured.value.transcript,
-      proposed: matched.text,
-      substitutions: matched.substitutions,
-      // Defence 2: a script the pinned locale should not produce.
-      surpriseScript: hasSurpriseScript(measured.value.transcript, locale),
-      confidence: measured.value.confidence,
-    });
-    setEdited(matched.text);
-  }, [corrections, locale, screenTexts]);
+    setLastEngine('browser · Web Speech API — this engine sends the audio to Google to transcribe');
+    await accept(measured.value);
+  }, [accept, locale]);
 
   const confirm = useCallback(() => {
     if (!proposal) return;
@@ -208,6 +297,47 @@ export function VoiceInput({
         Pinned, never auto-detected. Hinglish reaches the planner exactly as you say it.
       </p>
 
+      {/*
+        Two engines, and the honest difference between them stated before you
+        press anything. The browser engine uploads the audio; the on-device one
+        does not. On some networks — ours included — the browser engine returns
+        nothing at all, with no error, so this is the working path as well as the
+        private one.
+      */}
+      <div className="field" style={{ marginTop: 9 }}>
+        <label>Engine</label>
+        <button
+          type="button"
+          className="btn"
+          disabled={disabled || listening || whisperReady || whisperLoad !== null}
+          onClick={() => void loadVoiceModel()}
+        >
+          {whisperReady
+            ? 'On-device ready'
+            : whisperLoad !== null
+              ? `${Math.round(whisperLoad.progress * 100)}%`
+              : 'Load on-device voice'}
+        </button>
+      </div>
+      {whisperLoad !== null && (
+        <p className="note" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>{whisperLoad.text}</p>
+      )}
+      <p className={whisperReady ? 'note' : 'note warn'}>
+        {whisperReady ? (
+          <>
+            <strong>on-device</strong> — {loadedWhisperModel()} runs in this tab. The audio never leaves the
+            machine. Whisper reports no confidence score, so that one gate does not apply; the energy, filler
+            and script gates still do, and the transcript is still only a proposal.
+          </>
+        ) : (
+          <>
+            <strong>browser</strong> — the Web Speech API sends your audio to Google to transcribe, and on some
+            networks it silently returns nothing. Press <strong>Load on-device voice</strong> for a ~40MB model
+            that transcribes here instead, cached after the first load.
+          </>
+        )}
+      </p>
+
       <div className="actions">
         <button
           type="button"
@@ -260,6 +390,11 @@ export function VoiceInput({
         </div>
       )}
 
+      {lastEngine && (
+        <p className="note" style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>
+          transcribed by {lastEngine}
+        </p>
+      )}
       {error && <p className="note warn">{error}</p>}
 
       {rejected && (
