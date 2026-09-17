@@ -78,6 +78,91 @@ this path is just as correct as the CLI.
 
 ---
 
+## Netlify — every field, and what goes in it
+
+Two routes. **Route A is the one to use**, because it uploads the exact folder
+you built and tested; Netlify never runs a build, so a build-environment
+difference cannot break the demo an hour before the deadline.
+
+### Route A · Upload the folder you already verified (recommended)
+
+```bash
+pnpm verify                  # 290 tests, boundaries 8/8
+npx vite build apps/demo     # writes apps/demo/dist
+node scripts/verify-flows.mjs # 8/8 against that exact build
+```
+
+Then either:
+
+```bash
+npx netlify-cli deploy --prod --dir=apps/demo/dist
+```
+
+or drag the `apps/demo/dist` **folder** onto <https://app.netlify.com/drop>.
+
+| prompt | what to enter |
+|---|---|
+| Authorise in browser | sign in with GitHub |
+| What would you like to do? | **Create & configure a new site** |
+| Team | your personal team (the default) |
+| Site name | `origo-loop` → gives `https://origo-loop.netlify.app` |
+| Publish directory | already passed as `--dir=apps/demo/dist` |
+
+Nothing else is asked. No build command, no environment variables, no
+functions directory — Netlify is only serving four files.
+
+### Route B · Connect the GitHub repo (Netlify builds it)
+
+Use this only if you want every push to redeploy. `netlify.toml` is committed,
+so Netlify reads most of it automatically — but if the UI asks, these are the
+values:
+
+| field | value |
+|---|---|
+| Repository | `Shivansh0911/IQOO_Hackathon` |
+| Branch to deploy | `main` |
+| Base directory | **leave empty** |
+| Build command | `pnpm install --frozen-lockfile && npx vite build apps/demo` |
+| Publish directory | `apps/demo/dist` |
+| Functions directory | **leave empty** |
+| Environment variables | **none needed** (`NODE_VERSION=20` and `PNPM_VERSION=9` already come from `netlify.toml`) |
+
+`pnpm install --frozen-lockfile` is verified to succeed against the committed
+lockfile, so this route does build cleanly — it is simply one more moving part
+than Route A.
+
+### What must NOT go in
+
+- **No API keys. None.** A stranger opening the link needs no key. The
+  OpenRouter key, if anyone uses the cloud tier, is typed into the page at
+  runtime and lives in `localStorage` — it is never built in and never an
+  environment variable.
+- **Do not set `NODE_ENV=production`.** It makes the install skip
+  devDependencies, and Vite is a devDependency, so the build would fail with
+  "vite: not found".
+- **Do not add `Cross-Origin-Embedder-Policy`.** See the section above — it
+  blocks the model-weight fetch and silently kills the on-device tier in
+  production while localhost still looks fine.
+- **No SPA redirect rule.** There is one page and no client-side router, so a
+  `/* → /index.html` rewrite is unnecessary. Harmless, but it is not missing.
+- **No custom domain needed.** The `*.netlify.app` subdomain is HTTPS, which is
+  all the microphone and WebGPU require.
+
+### The moment it is live
+
+```
+[ ] Open the Website URL (not the "unique deploy URL") in a private window
+[ ] Strip reads: PLATFORM web · PLANNER mock · MODEL scripted · NETWORK on
+[ ] Press Demo mode, wait, strip reads PLANNER local · on-device · Qwen2.5-1.5B
+[ ] Paste the URL into README line 5 and docs/SUBMISSION.md §5
+[ ] Re-render the video so the closing card shows it:
+        node scripts/render-video.mjs --url https://origo-loop.netlify.app
+        pnpm verify:video
+```
+
+
+---
+
 ## The headers, and why each one exists
 
 Already committed as [`netlify.toml`](../netlify.toml) and
