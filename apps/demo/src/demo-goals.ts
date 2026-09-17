@@ -58,7 +58,21 @@ export const DEMO_GOALS: readonly DemoGoal[] = [
       { type: 'Tap', match: /^add$/i, reason: 'add an item so there is something to order' },
       { type: 'Tap', match: /^cart,/i, reason: 'open the cart' },
       { type: 'Tap', match: /proceed to checkout/i, reason: 'proceed towards placing the order' },
-      { type: 'Finish', verdict: 'Blocked', reason: 'placing an order needs a human decision' },
+      // The tail has to read true on BOTH sides of the gate.
+      //
+      // MEASURED, by driving it: the gate fires on "Proceed to checkout". Press
+      // Deny and the run ends at the gate with the gate's own reason. Press
+      // Allow and the app advances to the payment screen — where a separate
+      // "Place order" button still waits, so no order has been placed.
+      //
+      // The old reason, "placing an order needs a human decision", contradicted
+      // the human who had just made one. Claiming a Pass would have been worse:
+      // an attempt at asserting "Order placed" here finished Blocked with
+      // *nothing on this screen matches "/order placed/i"* — correct, because
+      // the order genuinely had not been placed. Blocked is the right verdict
+      // (the goal was not completed); the reason now says exactly where it
+      // stopped and why, which is true whichever button the human pressed.
+      { type: 'Finish', verdict: 'Blocked', reason: 'stopped on the payment screen — paying is not something an agent should do unsupervised' },
     ],
   },
   {

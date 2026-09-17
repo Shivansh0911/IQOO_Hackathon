@@ -59,3 +59,38 @@ describe('isScriptedGoal', () => {
     }
   });
 });
+
+describe('the destructive goal is honest on both sides of the gate', () => {
+  const ORDER_GOAL = 'add an item and place the order';
+
+  it('never claims the order was placed', () => {
+    // Driving it showed where the gate actually fires: on "Proceed to
+    // checkout", which lands on the payment screen with a separate "Place
+    // order" button still waiting. So no wording here may imply payment
+    // happened, and an Assert for "Order placed" would fail truthfully.
+    const steps = scriptFor(ORDER_GOAL);
+    const last = steps.at(-1);
+    expect(last?.type).toBe('Finish');
+    if (last?.type !== 'Finish') return;
+    expect(last.verdict).toBe('Blocked');
+    expect(last.reason).not.toMatch(/order (was )?placed|order went through/i);
+  });
+
+  it('does not contradict the human who approved it', () => {
+    // The old reason said "placing an order needs a human decision" — printed
+    // after the human had just made one, by pressing Allow.
+    const steps = scriptFor(ORDER_GOAL);
+    const last = steps.at(-1);
+    if (last?.type !== 'Finish') throw new Error('expected a Finish');
+    expect(last.reason).not.toMatch(/needs a human decision/i);
+    expect(last.reason).toMatch(/payment screen/i);
+  });
+
+  it('still reaches the checkout tap that trips the destructive gate', () => {
+    // If this step were ever removed the gate would never fire and the whole
+    // guardrail demo would silently become a happy path.
+    const steps = scriptFor(ORDER_GOAL);
+    const checkout = steps.find((s) => s.type === 'Tap' && String(s.match).includes('checkout'));
+    expect(checkout).toBeDefined();
+  });
+});
