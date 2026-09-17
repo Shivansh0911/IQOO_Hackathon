@@ -136,12 +136,20 @@ of 10 planning calls with `navigator.onLine === false`. Reproduce with
 1. **A cold start with no network at all.** The model weights are cached, but
    the lazily-imported WebLLM chunk has nothing caching it — there is no
    service worker.
-2. **Voice input.** Speech recognition in Chrome is *not* on-device: the audio
-   goes to a Google service to be transcribed, so the microphone needs the
-   network even when the agent does not. The agent's planning is on-device and
-   offline; the microphone in front of it is not. When that fetch fails the UI
-   now says so in those words rather than appearing to ignore the button —
-   found by a real "the mic is not working" report, see D17.
+2. **Voice input — and on some networks it does not work at all.** Speech
+   recognition in Chrome is *not* on-device: the audio goes to a Google cloud
+   service to be transcribed, so the microphone needs the network even when the
+   agent does not. Measured on our own machine, with a synthesised speech clip
+   fed to the browser as its microphone: Chrome fires `start` and `audiostart`,
+   then ends the session with **no transcript and no error code** — the same
+   with and without our level meter, in Chromium and in real Chrome, with and
+   without automation flags. Nothing in this repository can fix that; the app
+   now reports it precisely instead of appearing to ignore the button, and
+   `pnpm mic:doctor` reproduces the test in your own browser. See D17 and D18.
+   **Typing a goal does everything voice does** — no demo, video or flow check
+   depends on the microphone. On Android this reverses: `SpeechRecognizer` with
+   `EXTRA_PREFER_OFFLINE` transcribes on the handset, so the port removes the
+   only remote dependency the product has.
 
 So the honest claim is **"the agent plans and acts with the network off once the
 model is loaded"**, never "works offline" unqualified, and never implying the

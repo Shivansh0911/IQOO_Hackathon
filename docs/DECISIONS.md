@@ -190,3 +190,46 @@ claim that looked false. README now scopes it explicitly: the agent plans and
 acts offline; the microphone in front of it does not. On Android this gap
 closes — `SpeechRecognizer` with `EXTRA_PREFER_OFFLINE` can transcribe on the
 device — which is a point in favour of the port, not against it.
+
+**D18 · Voice recognition fails on this machine for reasons outside our code,
+and we say so rather than chasing it.**
+Reported as "hold to speak shows Listening but nothing happens". Traced with
+four experiments instead of guesses, all against the deployed site with a
+synthesised speech WAV fed to the browser as its microphone:
+
+| experiment | result |
+|---|---|
+| Playwright Chromium | `end` only — no `start`, no `result`, no `error` |
+| **Real Chrome**, recognition **alone** | `start → audiostart → end` · no transcript · no error |
+| Real Chrome, recognition **+ our level meter** | identical |
+| Real Chrome, automation flags stripped | identical |
+
+Three hypotheses died on measurement, and none of them shipped a speculative
+fix:
+
+1. *The AudioContext starts suspended, so the energy gate sees silence.* No —
+   it reports `running` and peak RMS came back 0.44 against a 0.012 floor.
+2. *Our `getUserMedia` level meter is holding the microphone and killing
+   recognition.* No — recognition fails identically with nothing else touching
+   the device.
+3. *Playwright's automation context disables the speech service.* No — stripping
+   the automation flags changes nothing.
+
+What remains: Chrome starts recognition, receives audio (`audiostart` fires),
+then ends the session without a transcript and **without an error code**. That
+is the signature of Chrome being unable to use Google's speech service — it is a
+cloud service, and it is Google's, not ours. Network, firewall, or region.
+Nothing in this repository can fix it.
+
+Two things we did instead. The app now explains itself: it reports "the
+microphone worked — 3600ms of speech was measured — but the browser returned no
+transcript", names the causes, and states that the agent is unaffected.
+And `pnpm mic:doctor` runs the same A/B experiment in the user's own browser so
+the conclusion is reproducible by someone who is not us.
+
+The honest framing for the submission: **voice input depends on a Google cloud
+service; the agent does not.** On Android this inverts — `SpeechRecognizer` with
+`EXTRA_PREFER_OFFLINE` transcribes on the handset — so the port removes the only
+remote dependency the product has. That is a point for the Android story, and it
+is why nothing in the demo, the video or the flow checks depends on the
+microphone.
