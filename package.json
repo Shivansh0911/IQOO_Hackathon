@@ -23,6 +23,8 @@
     "record": "node scripts/record-demo.mjs",
     "assemble": "node scripts/make-shotcut-project.mjs",
     "video": "node scripts/render-video.mjs",
+    "render": "node scripts/render-video.mjs && node scripts/verify-video.mjs",
+    "verify:video": "node scripts/verify-video.mjs",
     "measure:sites": "node scripts/measure-real-sites.mjs",
     "verify:flows": "node scripts/verify-flows.mjs"
   },

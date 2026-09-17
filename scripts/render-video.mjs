@@ -29,12 +29,15 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 import { titleCard, sectionCard, statementCard, closingCard } from './video-cards.mjs';
+import { synthesise, ambientBed, mixNarration, loudnessOf, streamsOf } from './video-audio.mjs';
 
 const require = createRequire(import.meta.url);
 const root = path.resolve(import.meta.dirname, '..');
 const videoDir = path.join(root, '.shots/video');
 const workDir = path.join(videoDir, '.render');
 const OUTPUT = path.join(videoDir, 'origo-demo.mp4');
+/** The narration timing, written beside the video so sync is checkable. */
+const PLAN_FILE = path.join(videoDir, 'origo-demo.audio.json');
 
 const FPS = 25;
 const W = 1920;
@@ -50,6 +53,23 @@ function argValue(flag) {
   return i !== -1 ? process.argv[i + 1] : undefined;
 }
 const LIVE_URL = argValue('--url') ?? '[ paste the Netlify URL here ]';
+/** --no-audio renders the silent cut; the default is the narrated one. */
+const WANT_AUDIO = !process.argv.includes('--no-audio');
+/** The script section narrated over the closing card. */
+const CLOSING_SCRIPT_SECTION = 'WHO, AND WHAT IS OPEN';
+/**
+ * Speech rate on the engine's -10..10 scale, where 0 is the default pace.
+ *
+ * Set to 2, a little above default. Measured reason: at 0 the synthesiser took
+ * 252 seconds to read the script and the finished video came out at 5:04, well
+ * past the four-minute cap, with clips frozen for up to 27 seconds to wait for
+ * the voice. At 2 it reads in 203 seconds and the video lands at 3:58.
+ *
+ * Deliberately NOT pushed higher. The brief was explicit that the narration
+ * must not sound rushed, so the remaining difference is absorbed by the
+ * timeline — see fitBeatsToSpeech — rather than by talking faster.
+ */
+const SPEECH_RATE = 2;
 
 const FFMPEG = require('@ffmpeg-installer/ffmpeg').path;
 
@@ -167,12 +187,20 @@ async function parseScript() {
     const row = /^\|\s*(\d+)\s*\|\s*(.+?)\s*\|\s*(\d+)\s*\|/.exec(line);
     if (!row?.[2] || !row[3]) continue;
     const raw = row[2].trim();
-    const isDirection = raw.startsWith('*(');
-    const text = raw.replace(/^"|"$/g, '').replace(/\*\((.*)\)\*/, '').trim();
-    sections.get(current)?.push({
-      text: isDirection ? '' : text,
-      secs: Number(row[3]),
-    });
+    // Strip any *(stage direction)* and keep whatever narration is left.
+    //
+    // Treating a cell that merely STARTS with a direction as pure direction
+    // threw away real narration: row 5 of the IT IS SAFE table reads
+    // *(cut to clip-05)* "Now the part nobody else will show you." — and that
+    // line was silently missing from both the audio and the captions until a
+    // frame check showed a card with no caption on it. A row is only a pause
+    // if nothing survives the strip.
+    const text = raw
+      .replace(/\*\([^)]*\)\*/g, '')
+      .trim()
+      .replace(/^"|"$/g, '')
+      .trim();
+    sections.get(current)?.push({ text, secs: Number(row[3]) });
   }
   return sections;
 }
@@ -193,13 +221,52 @@ async function renderCards(cards) {
   await browser.close();
 }
 
-/** A still PNG held for N seconds, as an mp4 segment. */
-function encodeStill(png, seconds, out) {
+/**
+ * The caption band and one timed drawtext per spoken beat.
+ *
+ * Shared by stills and clips, because narration can begin over a section card
+ * and continue onto the footage — so a card has to be able to caption itself.
+ * Without this, a beat moved onto a card would be spoken but never written, and
+ * the promise that the audio and the captions always agree would quietly break.
+ */
+async function captionFilters({ beats, tag, bandTop, limitSeconds }) {
+  const filters = [
+    `drawbox=x=0:y=${bandTop}:w=${W}:h=${BAND_H}:color=0x0e0e0e:t=fill`,
+    `drawbox=x=0:y=${bandTop}:w=${W}:h=4:color=0xf5b400:t=fill`,
+  ];
+  let at = 0;
+  for (const [i, beat] of beats.entries()) {
+    const from = at;
+    at += beat.secs;
+    if (!beat.text) continue;
+    const textFile = path.join(workDir, `cap-${tag}-${i}.txt`);
+    await writeFile(textFile, wrap(beat.text), 'utf8');
+    const textArg = textFile.replace(/\\/g, '/').replace(/:/g, '\\:');
+    filters.push(
+      `drawtext=fontfile='${FONT?.replace(/:/g, '\\:')}':textfile='${textArg}':` +
+        `fontcolor=0xf7f5ef:fontsize=40:line_spacing=12:x=70:y=${bandTop + 40}:` +
+        `enable='between(t,${from.toFixed(2)},${Math.min(at, limitSeconds).toFixed(2)})'`,
+    );
+  }
+  return filters;
+}
+
+/** A still PNG held for N seconds, optionally captioned, as an mp4 segment. */
+async function encodeStill(png, seconds, out, beats, tag) {
+  const spoken = (beats ?? []).some((b) => b.text);
+  const filters = [`scale=${W}:${H}`];
+  if (spoken) {
+    filters.push(
+      ...(await captionFilters({ beats: beats ?? [], tag: `card-${tag}`, bandTop: H - BAND_H, limitSeconds: seconds })),
+    );
+  }
+  filters.push('format=yuv420p');
+
   ff(
     [
       '-y', '-loop', '1', '-framerate', String(FPS), '-i', png,
       '-t', String(seconds),
-      '-vf', `scale=${W}:${H},format=yuv420p`,
+      '-vf', filters.join(','),
       '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-r', String(FPS),
       out,
     ],
@@ -264,36 +331,10 @@ async function encodeClip(clip, captions, index) {
   ];
   if (hold > 0.05) filters.push(`tpad=stop_mode=clone:stop_duration=${hold.toFixed(2)}`);
 
-  filters.push(`drawbox=x=0:y=${bandTop}:w=${W}:h=${BAND_H}:color=0x0e0e0e:t=fill`);
-  filters.push(`drawbox=x=0:y=${bandTop}:w=${W}:h=4:color=0xf5b400:t=fill`);
-
-  // A scripted silent beat — *(hold, let it land)* — carries no text of its
-  // own. Leaving it blank drops the caption band to empty mid-segment, which
-  // reads as a rendering bug rather than a pause, so its seconds are folded
-  // into the previous line and that line simply stays up. This is what a human
-  // editor would do with the same beat.
-  const held = [];
-  for (const caption of captions) {
-    const previous = held.at(-1);
-    if (!caption.text && previous) previous.secs += caption.secs;
-    else held.push({ ...caption });
-  }
-
-  // One drawtext per caption, shown only during its own window.
-  let at = 0;
-  for (const [i, caption] of held.entries()) {
-    const from = at;
-    at += caption.secs;
-    if (!caption.text) continue; // a scripted pause carries no caption
-    const tf = path.join(workDir, `cap-${index}-${i}.txt`);
-    await writeFile(tf, wrap(caption.text), 'utf8');
-    const tfArg = tf.replace(/\\/g, '/').replace(/:/g, '\\:');
-    filters.push(
-      `drawtext=fontfile='${FONT?.replace(/:/g, '\\:')}':textfile='${tfArg}':` +
-        `fontcolor=0xf7f5ef:fontsize=40:line_spacing=12:x=70:y=${bandTop + 40}:` +
-        `enable='between(t,${from.toFixed(2)},${Math.min(at, total).toFixed(2)})'`,
-    );
-  }
+  // `captions` is already merged and timed by planBeats(), so the drawtext
+  // windows and the narration timestamps come from the same numbers — which is
+  // what keeps the spoken line and the written line on screen together.
+  filters.push(...(await captionFilters({ beats: captions, tag: String(index), bandTop, limitSeconds: total })));
 
   const out = path.join(workDir, `seg-${String(index).padStart(2, '0')}.mp4`);
   ff(
@@ -308,6 +349,57 @@ async function encodeClip(clip, captions, index) {
     `clip ${clip}`,
   );
   return { out, seconds: total, source: real, hold, narration };
+}
+
+/** A natural gap after each spoken line, so sections do not run together. */
+const PAUSE_AFTER_LINE = 0.4;
+
+/**
+ * The longest a clip may sit on a frozen final frame.
+ *
+ * Beyond this the narration moves onto the preceding section card instead. A
+ * freeze of a few seconds reads as a deliberate hold; twenty-seven seconds
+ * reads as a broken player, which is what the first narrated render produced.
+ */
+const MAX_FREEZE_SECONDS = 5;
+
+/** How much of a clip is left after the head flash and the tail cut. */
+function usableSecondsOf(clip) {
+  const real = durationOf(path.join(videoDir, clip, `${clip}.webm`));
+  return real === null ? 0 : Math.max(1, real - 0.6 - 0.1);
+}
+
+/**
+ * Folds scripted silent beats into the line before them.
+ *
+ * A row like *(hold, let it land)* carries no text. Left as its own window it
+ * drops the caption band to empty mid-segment, which reads as a rendering bug
+ * rather than a pause — so its seconds extend the previous line and that line
+ * simply stays up, which is what a human editor would do with the same beat.
+ */
+function planBeats(rows) {
+  const beats = [];
+  for (const row of rows) {
+    const previous = beats.at(-1);
+    if (!row.text && previous) previous.secs += row.secs;
+    else beats.push({ ...row });
+  }
+  return beats;
+}
+
+/**
+ * Widens each beat to fit the speech actually synthesised for it.
+ *
+ * The seconds in VIDEO_SCRIPT.md were written for a human reading aloud and the
+ * synthesiser does not match them line for line. Two ways to reconcile that:
+ * speed the voice up until it fits, or let the timeline breathe. Speeding it up
+ * is how narration ends up sounding robotic, so the timeline gives way instead
+ * — the footage freezes or a card holds a moment longer, and nothing is rushed.
+ */
+function fitBeatsToSpeech(beats) {
+  for (const beat of beats) {
+    if (beat.speech) beat.secs = Math.max(beat.secs, beat.speech + PAUSE_AFTER_LINE);
+  }
 }
 
 async function main() {
@@ -349,7 +441,10 @@ async function main() {
     const rows = script.get(section.script) ?? [];
     const range = section.scriptLines;
     const picked = range ? rows.slice(range[0] - 1, range[1]) : rows;
-    section.captions = picked;
+    // Merge silent beats now, so one list drives the captions, the segment
+    // lengths and the narration timestamps alike.
+    section.captions = planBeats(picked);
+    for (const beat of section.captions) beat.scriptSecs = beat.secs;
 
     // A statement card has no footage behind it, so it carries the narration
     // itself; a section card carries one line of argument over the coming clip.
@@ -359,7 +454,7 @@ async function main() {
         ? statementCard({
             index: i + 1,
             heading: section.heading,
-            lines: picked.filter((r) => r.text).map((r) => r.text),
+            lines: (section.captions ?? []).filter((r) => r.text).map((r) => r.text),
           })
         : sectionCard({ index: i + 1, heading: section.heading, context: section.context }),
     });
@@ -378,6 +473,54 @@ async function main() {
     }),
   });
 
+  // ── Narration, BEFORE any video is encoded ────────────────────────────────
+  //
+  // Order matters: the synthesised speech decides how long each beat needs to
+  // be, and the beats decide how long each segment is. Encoding first and
+  // adding audio afterwards would mean either a voice racing the visuals or a
+  // second render pass.
+  const closingBeats = planBeats(script.get(CLOSING_SCRIPT_SECTION) ?? []);
+  for (const beat of closingBeats) beat.scriptSecs = beat.secs;
+  if (WANT_AUDIO && !closingBeats.length) {
+    console.error(`docs/VIDEO_SCRIPT.md has no narration table for "${CLOSING_SCRIPT_SECTION}".`);
+    process.exit(1);
+  }
+
+  const allBeats = [...SECTIONS.flatMap((section) => section.captions ?? []), ...closingBeats];
+  const spoken = allBeats.filter((beat) => beat.text);
+  let voiceName = null;
+
+  if (WANT_AUDIO) {
+    console.log(`
+Synthesising ${spoken.length} narration lines…`);
+    const speech = await synthesise({ lines: spoken, dir: path.join(workDir, 'speech'), rate: SPEECH_RATE });
+    if (!speech.ok) {
+      console.error(`
+${speech.error}`);
+      console.error('Render the silent cut instead with:  node scripts/render-video.mjs --no-audio');
+      process.exit(1);
+    }
+    voiceName = speech.voice;
+    for (const [i, beat] of spoken.entries()) {
+      const file = speech.files[i]?.file;
+      const seconds = file ? durationOf(file) : null;
+      if (!file || seconds === null) {
+        console.error(`No audio produced for narration line ${i + 1}: "${beat.text.slice(0, 60)}…"`);
+        process.exit(1);
+      }
+      beat.file = file;
+      beat.speech = seconds;
+    }
+    fitBeatsToSpeech(allBeats);
+
+    const stretched = spoken.filter((b) => b.speech + PAUSE_AFTER_LINE > b.scriptSecs).length;
+    console.log(
+      `  voice ${voiceName} at rate ${SPEECH_RATE} · ` +
+        `${spoken.reduce((t, b) => t + b.speech, 0).toFixed(1)}s of speech · ` +
+        `${stretched} of ${spoken.length} beats widened to fit it`,
+    );
+  }
+
   console.log(`ffmpeg  ${path.relative(root, FFMPEG).slice(0, 70)}…`);
   console.log(`font    ${FONT}`);
   console.log(`\nRendering ${cards.length} cards in a real browser…`);
@@ -388,56 +531,193 @@ async function main() {
   const rows = [];
   let index = 0;
 
-  const addStill = (png, seconds, label, note) => {
+  // `cursor` is the absolute position on the finished timeline. Every narration
+  // line records the moment it should be heard, so the mix places speech at the
+  // same instants the captions appear rather than at guessed offsets.
+  let cursor = 0;
+  /** @type {{ file: string, at: number, speech: number, text: string }[]} */
+  const narration = [];
+
+  const scheduleBeats = (beats, from) => {
+    let at = from;
+    for (const beat of beats) {
+      if (beat.text && beat.file && beat.speech) {
+        narration.push({ file: beat.file, at, speech: beat.speech, text: beat.text });
+      }
+      at += beat.secs;
+    }
+  };
+
+  const addStill = async (png, seconds, label, note, { schedule, caption } = {}) => {
     const out = path.join(workDir, `seg-${String(index).padStart(2, '0')}.mp4`);
-    encodeStill(png, seconds, out);
+    // `caption` is passed only for section cards that inherited spoken lines.
+    // Statement cards already print their narration as body text, so a band
+    // over the top would render every line twice.
+    await encodeStill(png, seconds, out, caption, index);
     segments.push(out);
     rows.push({ label, seconds, note });
+    if (schedule) scheduleBeats(schedule, cursor);
+    cursor += seconds;
     index += 1;
   };
 
-  addStill(pngFor('title'), TITLE_SECONDS, 'TITLE CARD', 'Origo Loop · team line');
+  await addStill(pngFor('title'), TITLE_SECONDS, 'TITLE CARD', 'Origo Loop · team line');
 
   for (const [i, section] of SECTIONS.entries()) {
     const captions = section.captions ?? [];
     if (section.statement) {
-      // A statement card is held for as long as its narration would run, so a
-      // muted viewer has time to read every line.
-      const secs = Math.max(8, captions.reduce((s, c) => s + c.secs, 0));
-      addStill(pngFor(`s${i}`), secs, `CARD ${section.heading}`, `${captions.filter((c) => c.text).length} lines, no footage`);
+      // A statement card is held for as long as its narration runs, so a muted
+      // viewer has time to read every line and a listening one hears it all.
+      const secs = Math.max(8, captions.reduce((sum, c) => sum + c.secs, 0));
+      await addStill(
+        pngFor(`s${i}`),
+        secs,
+        `CARD ${section.heading}`,
+        `${captions.filter((c) => c.text).length} lines, no footage`,
+        { schedule: captions },
+      );
       continue;
     }
-    addStill(pngFor(`s${i}`), CARD_SECONDS, `CARD ${section.heading}`, section.context.slice(0, 52) + '…');
 
-    // Captions are shared across the section's clips in order.
-    let pool = [...captions];
-    for (const clip of section.clips ?? []) {
-      // Give each clip a share of the section's caption lines proportional to
-      // how many clips remain, so a two-clip section splits its narration.
-      const remaining = (section.clips ?? []).length - (section.clips ?? []).indexOf(clip);
-      const take = remaining === 1 ? pool.length : Math.ceil(pool.length / remaining);
-      const mine = pool.slice(0, take);
-      pool = pool.slice(take);
-
-      const made = await encodeClip(clip, mine, index);
-      segments.push(made.out);
-      rows.push({
-        label: clip,
-        seconds: made.seconds,
-        note: `src ${made.source.toFixed(1)}s${made.hold > 0.05 ? ` +${made.hold.toFixed(1)}s freeze` : ''} · ${mine.filter((c) => c.text).length} captions`,
-      });
-      index += 1;
+    // Split the section's narration between its card and its footage.
+    //
+    // Synthesised speech runs appreciably longer than the human timings in the
+    // script, and parking all of it on the clip meant freezing the last frame
+    // for as long as twenty-seven seconds — measured, and unwatchable. So the
+    // opening lines play over the section card, which holds for exactly as long
+    // as they take, and only what the footage can carry stays on the footage.
+    // This is what a human editor does with a title card, and it caps the
+    // freeze at MAX_FREEZE_SECONDS.
+    const clip = (section.clips ?? [])[0];
+    const usable = clip ? usableSecondsOf(clip) : 0;
+    const cardBeats = [];
+    const clipBeats = [...captions];
+    while (
+      clipBeats.length > 1 &&
+      clipBeats.reduce((sum, b) => sum + b.secs, 0) > usable + MAX_FREEZE_SECONDS
+    ) {
+      const moved = clipBeats.shift();
+      if (moved) cardBeats.push(moved);
     }
+
+    const cardSeconds = cardBeats.length
+      ? Math.max(CARD_SECONDS, cardBeats.reduce((sum, b) => sum + b.secs, 0))
+      : CARD_SECONDS;
+    await addStill(
+      pngFor(`s${i}`),
+      cardSeconds,
+      `CARD ${section.heading}`,
+      cardBeats.length ? `${cardBeats.length} line(s) narrated over the card` : section.context.slice(0, 44) + '…',
+      { schedule: cardBeats, caption: cardBeats.length ? cardBeats : undefined },
+    );
+
+    if (!clip) continue;
+    const made = await encodeClip(clip, clipBeats, index);
+    segments.push(made.out);
+    rows.push({
+      label: clip,
+      seconds: made.seconds,
+      note: `src ${made.source.toFixed(1)}s${made.hold > 0.05 ? ` +${made.hold.toFixed(1)}s freeze` : ''} · ${clipBeats.filter((c) => c.text).length} captions`,
+    });
+    scheduleBeats(clipBeats, cursor);
+    cursor += made.seconds;
+    index += 1;
   }
 
-  addStill(pngFor('closing'), CLOSING_SECONDS, 'CLOSING CARD', `proven ×2, open ×1 · ${LIVE_URL}`);
+  // The closing card holds long enough to speak the whole close, including the
+  // two lines about what is still open. Those are the last thing said, on
+  // purpose.
+  const closingSeconds = WANT_AUDIO
+    ? Math.max(CLOSING_SECONDS, closingBeats.reduce((sum, b) => sum + b.secs, 0))
+    : CLOSING_SECONDS;
+  await addStill(pngFor('closing'), closingSeconds, 'CLOSING CARD', `proven ×2, open ×1 · ${LIVE_URL}`, {
+    schedule: WANT_AUDIO ? closingBeats : undefined,
+  });
 
   // ── Concat ────────────────────────────────────────────────────────────────
   const list = path.join(workDir, 'segments.txt');
   await writeFile(list, segments.map((f) => `file '${f.replace(/\\/g, '/')}'`).join('\n'), 'utf8');
   // Every segment is already the same codec, geometry, SAR and rate, so a
   // stream copy is safe and lossless here.
-  ff(['-y', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', '-movflags', '+faststart', OUTPUT], 'concat');
+  const silentCut = WANT_AUDIO ? path.join(workDir, 'video-only.mp4') : OUTPUT;
+  ff(['-y', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', '-movflags', '+faststart', silentCut], 'concat');
+
+  // ── Music, mix and mux ────────────────────────────────────────────────────
+  let audioReport = null;
+  if (WANT_AUDIO) {
+    const videoSeconds = durationOf(silentCut) ?? cursor;
+
+    const bed = path.join(workDir, 'bed.wav');
+    const music = ambientBed({ ffmpeg: FFMPEG, seconds: videoSeconds + 0.5, out: bed });
+    if (!music.ok) {
+      console.error(`
+background music failed:
+${music.error}`);
+      process.exit(1);
+    }
+
+    const mixed = path.join(workDir, 'mixed.wav');
+    const mix = mixNarration({
+      ffmpeg: FFMPEG,
+      entries: narration,
+      bed,
+      seconds: videoSeconds,
+      out: mixed,
+    });
+    if (!mix.ok) {
+      console.error(`
+audio mix failed:
+${mix.error}`);
+      process.exit(1);
+    }
+
+    const levels = loudnessOf({ ffmpeg: FFMPEG, file: mixed });
+
+    // AAC-LC at 44.1kHz stereo in an mp4 with faststart: the combination every
+    // standard player handles without a codec pack, which is the whole point of
+    // shipping one file.
+    ff(
+      [
+        '-y',
+        '-i', silentCut,
+        '-i', mixed,
+        '-map', '0:v:0', '-map', '1:a:0',
+        '-c:v', 'copy',
+        '-c:a', 'aac', '-b:a', '192k', '-ar', '44100', '-ac', '2',
+        '-shortest',
+        '-movflags', '+faststart',
+        OUTPUT,
+      ],
+      'mux audio into the mp4',
+    );
+
+    // The sync plan is written out beside the video: every line, the second it
+    // is spoken, and how long it runs. It is what scripts/verify-video.mjs
+    // checks the finished audio against, so "the narration is synchronised" is
+    // a testable claim rather than an assurance.
+    await writeFile(
+      PLAN_FILE,
+      JSON.stringify(
+        {
+          renderedAt: new Date().toISOString(),
+          voice: voiceName,
+          speechRate: SPEECH_RATE,
+          videoSeconds: videoSeconds,
+          loudness: levels,
+          lines: narration.map((n) => ({
+            at: Number(n.at.toFixed(3)),
+            seconds: Number(n.speech.toFixed(3)),
+            text: n.text,
+          })),
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
+    audioReport = { levels, lines: narration.length };
+  }
 
   // ── Report ────────────────────────────────────────────────────────────────
   const total = durationOf(OUTPUT) ?? 0;
@@ -456,6 +736,28 @@ async function main() {
   console.log('-'.repeat(100));
   console.log(`DURATION ${stamp(total)} (${total.toFixed(1)}s) · ${(bytes / 1e6).toFixed(1)}MB · ${W}x${H} H.264`);
   console.log(`\n  ${path.relative(root, OUTPUT)}\n`);
+
+  // Read the streams back off the finished file. "It has audio" is a claim
+  // about the artefact, so it is checked against the artefact rather than
+  // inferred from ffmpeg having exited zero.
+  const streams = streamsOf({ ffmpeg: FFMPEG, file: OUTPUT });
+  console.log('\nSTREAMS IN THE FINISHED FILE');
+  for (const line of streams.all) console.log(`  ${line}`);
+  if (audioReport) {
+    console.log(
+      `\nAUDIO  ${audioReport.lines} narration lines - voice ${voiceName} - ` +
+        `${audioReport.levels.lufs ?? '?'} LUFS integrated - peak ${audioReport.levels.peak ?? '?'} dBFS`,
+    );
+  }
+
+  const missingVideo = streams.video.length === 0;
+  const missingAudio = WANT_AUDIO && streams.audio.length === 0;
+  if (missingVideo || missingAudio) {
+    console.error(
+      `\nFINISHED FILE IS INCOMPLETE:${missingVideo ? ' no video stream' : ''}${missingAudio ? ' no audio stream' : ''}`,
+    );
+    process.exit(1);
+  }
 
   if (total < 180 || total > 240) {
     console.error(`DURATION OUT OF RANGE: ${stamp(total)} is not between 3:00 and 4:00.`);
