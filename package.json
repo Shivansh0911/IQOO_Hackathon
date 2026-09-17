@@ -22,11 +22,13 @@
     "e2e": "node scripts/e2e-demo.mjs",
     "record": "node scripts/record-demo.mjs",
     "assemble": "node scripts/make-shotcut-project.mjs",
+    "video": "node scripts/render-video.mjs",
     "measure:sites": "node scripts/measure-real-sites.mjs",
     "verify:flows": "node scripts/verify-flows.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@types/node": "^20.14.10",
     "esbuild": "^0.28.2",
     "eslint": "^9.12.0",

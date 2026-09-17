@@ -60,7 +60,7 @@ Nothing in packages/** may import from adapters/** or apps/**.
 - WebLLM (WebGPU) for local inference — Tier 1, the default
 - OpenRouter free tier for cloud inference — Tier 2, fallback
 - Web Speech API for voice — free, browser-native
-- Static build, free host (Vercel/Netlify/Pages), COOP+COEP for WebGPU
+- Static build, free host (Netlify), COOP only — COEP breaks the model fetch (D2)
 
 ## Code standards
 - Every fallible function returns Result<T,E>. No exceptions as control flow.

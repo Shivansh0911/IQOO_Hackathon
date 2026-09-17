@@ -1,4 +1,4 @@
-# Netlify, as the alternative to Vercel. Either works; see docs/DEPLOY.md.
+# Netlify is the host. It is the only one configured — see docs/DEPLOY.md.
 
 [build]
   command = "pnpm install --frozen-lockfile && npx vite build apps/demo"

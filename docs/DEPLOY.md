@@ -21,8 +21,11 @@ Commands and checklists, not prose.
 4. `netlify.toml` is committed with the build command and publish directory, so
    a CLI deploy needs no flags beyond `--prod`.
 
-**Vercel** works identically and `vercel.json` is committed too.
-**Cloudflare Pages** works via the same `_headers` file.
+Netlify is the only host configured. A Vercel config used to be committed
+alongside it and was deleted: two half-maintained deploy configs is one more
+than anyone verifies, and the one we verified is this one. `apps/demo/public/_headers`
+also happens to be the format Cloudflare Pages reads, so that route would work
+unchanged — but it is not tested and not the plan.
 
 ### The one thing not to "fix"
 
@@ -69,12 +72,6 @@ npx netlify-cli deploy --prod --dir=apps/demo/dist
 #   and verified, rather than rebuilding on Netlify's machine.
 ```
 
-**Vercel instead:**
-```bash
-npm i -g vercel && vercel login && vercel --prod
-#   Reads vercel.json; build command, output dir and headers are already set.
-```
-
 **Drag-and-drop, if the CLI misbehaves:** build, then drag `apps/demo/dist` onto
 app.netlify.com/drop. The `_headers` file inside `dist` carries the headers, so
 this path is just as correct as the CLI.
@@ -83,10 +80,10 @@ this path is just as correct as the CLI.
 
 ## The headers, and why each one exists
 
-Already committed as [`vercel.json`](../vercel.json),
-[`netlify.toml`](../netlify.toml) and
-[`apps/demo/public/_headers`](../apps/demo/public/_headers). Copy whichever your
-host needs.
+Already committed as [`netlify.toml`](../netlify.toml) and
+[`apps/demo/public/_headers`](../apps/demo/public/_headers). The two agree
+value-for-value; the `.toml` covers a CLI or git-linked deploy, the `_headers`
+file travels inside `dist` so a drag-and-drop deploy is equally correct.
 
 ```
 Cross-Origin-Opener-Policy: same-origin

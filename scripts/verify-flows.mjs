@@ -316,6 +316,67 @@ async function main() {
     await context.close();
   }
 
+  // ── FLOW 6 · THE EXPORTED REPORT ──────────────────────────────────────
+  //
+  // This flow was missing: the harness header claimed eight flows, the
+  // numbering skipped 6, and the one deliverable on the submission checklist
+  // with NO automated coverage was the HTML report — the artefact a judge is
+  // most likely to keep. It is self-contained by design, so the test that
+  // matters is that it renders with the network cut off and no origin to fetch
+  // from, not merely that a file arrives.
+  await flow('FLOW 6 exported report', 'flow6', async (page, context, errors) => {
+    await page.goto(url);
+    await page.waitForSelector('.tiffin');
+    const t0 = Date.now();
+    await page.fill('textarea', 'add an item from the first biryani restaurant and check the cart total is under 500');
+    await page.locator('button.btn-primary', { hasText: 'Run' }).click();
+    await page.waitForSelector('.verdict', { timeout: 60000 });
+
+    const download = await Promise.all([
+      page.waitForEvent('download', { timeout: 20000 }),
+      page.locator('button', { hasText: 'Download HTML' }).click(),
+    ]).then(([d]) => d);
+
+    const saved = path.join(root, '.shots/flow6-report.html');
+    await download.saveAs(saved);
+    const html = await readFile(saved, 'utf8');
+
+    // Self-contained means no external fetch of any kind.
+    const external = [...html.matchAll(/(?:src|href)\s*=\s*["']([^"']+)["']/g)]
+      .map((m) => m[1])
+      .filter((u) => /^(https?:)?\/\//.test(u) || /^\/\//.test(u));
+
+    // Render it from a file:// URL with the network blocked, which is the
+    // harshest honest version of "open it on a plane".
+    const viewer = await context.newPage();
+    await viewer.route('**', (r) => (r.request().url().startsWith('file:') ? r.continue() : r.abort()));
+    const offlineErrors = [];
+    viewer.on('pageerror', (e) => offlineErrors.push(String(e).slice(0, 120)));
+    await viewer.goto('file:///' + saved.split(path.sep).join('/'));
+    const rendered = await viewer.evaluate(() => ({
+      verdict: document.body.innerText.includes('Pass') || document.body.innerText.includes('PASS'),
+      steps: document.querySelectorAll('tr, li, .step').length,
+      chars: document.body.innerText.trim().length,
+      styled: getComputedStyle(document.body).backgroundColor,
+    }));
+    await viewer.screenshot({ path: '.shots/flow6-report.png', fullPage: false });
+    await viewer.close();
+
+    const defects = [];
+    if (external.length) defects.push(`report fetches ${external.length} external URL(s): ${external.slice(0, 3).join(', ')}`);
+    if (!rendered.verdict) defects.push('verdict missing from the rendered report');
+    if (rendered.chars < 400) defects.push(`report rendered almost empty (${rendered.chars} chars)`);
+    if (offlineErrors.length) defects.push(`page errors offline: ${offlineErrors.join(' | ')}`);
+
+    record(
+      'FLOW 6 exported report',
+      `${(html.length / 1024).toFixed(0)}kB · ${external.length} external refs · renders offline from file://: ` +
+        `${rendered.chars} chars, ${rendered.steps} rows, bg ${rendered.styled}`,
+      Date.now() - t0,
+      defects.join(' · ') || (errors.length ? errors.join(' | ') : ''),
+    );
+  });
+
   // ── FLOW 7 · THE HOSTILE JUDGE ────────────────────────────────────────
   await flow('FLOW 7 hostile judge', 'flow7', async (page, context, errors) => {
     await page.goto(url);

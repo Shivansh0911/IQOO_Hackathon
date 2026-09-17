@@ -67,6 +67,19 @@ Describe the **decisions**, not the UI.
 | 4 | "It types the search. Reads the screen again. Checks the results actually say biryani." | 5 |
 | 5 | "Then it stops and says Pass, with the value it read." | 4 |
 
+### IT VERIFIES · rendered cut only — *`clip-04-fail.webm`*
+
+Not part of the 3:00 human cut above — the narrated version has no room for it.
+The **rendered** video (`pnpm video`) does, and uses these lines as captions.
+It earns its place: a green Pass only means something if a wrong expectation
+produces a red Fail, and this is that.
+
+| # | narration | secs |
+|---|---|---|
+| 1 | "A passing test only means something if a failing one goes red." | 4 |
+| 2 | "Same app, one wrong expectation: the restaurant is rated above 4.9." | 5 |
+| 3 | "It reads the real value, 4.5, and fails — quoting what it read." | 5 |
+
 ### 1:10 – 1:58 · IT IS SAFE — *`clip-03-guardrail.webm` then `clip-05-rejects.webm`*
 
 **This is the differentiator. Do not rush it.**

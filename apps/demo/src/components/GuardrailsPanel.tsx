@@ -5,11 +5,18 @@
  * enough — 15 rejections out of 20 calls, the raw text it produced, the specific
  * validator error, and what the agent did next.
  *
- * This is not a simulation and it is not a mock. `captured-rejections.json` is
- * generated from the Gate 2 measurement runs (scripts/gate2-measure.mjs) and the
- * panel says so, including the model and the date, because a replay presented as
- * a live run would be exactly the kind of dishonesty this whole project is
- * built to avoid.
+ * This is not a simulation and it is not a mock. The contents of
+ * `captured-rejections.json` — the raw replies, the validator messages, the
+ * per-call latencies — are real output from a Gate 2 measurement run
+ * (scripts/gate2-measure.mjs, which writes .shots/gate2.json). They were
+ * TRANSCRIBED from that run by hand rather than emitted by a script, so the
+ * file cannot be regenerated with one command; the data is measured, the file
+ * is not yet reproducible. Said plainly here because "generated from" would
+ * imply more automation than exists.
+ *
+ * The panel states the model and the date on screen, because a replay
+ * presented as a live run would be exactly the kind of dishonesty this whole
+ * project is built to avoid.
  *
  * It is here because it is the most credible thing we have. Every team shows a
  * happy path. Almost none can show what their system does when the model is

@@ -190,11 +190,12 @@ export default tseslint.config(
         setInterval: 'readonly',
         clearInterval: 'readonly',
         setTimeout: 'readonly',
-        // document/navigator/URL run INSIDE page.evaluate, not in Node.
+        // These run INSIDE page.evaluate, not in Node.
         document: 'readonly',
         navigator: 'readonly',
         window: 'readonly',
         URL: 'readonly',
+        getComputedStyle: 'readonly',
       },
     },
     rules: {

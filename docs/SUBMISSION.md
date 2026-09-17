@@ -65,7 +65,7 @@ the demo console. It names which tier to record each run on and why.
 
 ## 5 · Prototype URL
 
-- **Live demo:** `[[ deploy with docs/DEPLOY.md — one `vercel --prod` — then paste here ]]`
+- **Live demo:** `[[ deploy with docs/DEPLOY.md — npx netlify-cli deploy --prod --dir=apps/demo/dist — then paste here ]]`
 - **Repository:** https://github.com/Shivansh0911/IQOO_Hackathon
 
 Not optional for us. It is the single biggest thing separating this submission

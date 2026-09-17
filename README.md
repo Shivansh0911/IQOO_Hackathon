@@ -31,6 +31,17 @@ invalid actions in 20 calls and the validator caught 100% of them, with nothing
 wrong ever reaching the app. That is stronger evidence than a clean run, and the
 console can replay it (the Guardrails panel).
 
+**OPEN — no small model has yet completed a multi-step task end to end on the
+local tier.** Qwen2.5-1.5B emits legal actions but does not reliably terminate:
+driven through the real console it re-asserts the same condition instead of
+emitting `Finish`, and the run ends `Blocked` on the repeat guard. Single-action
+selection is solved; multi-step completion is not. The demo records on the
+scripted tier, which the status strip states throughout. We tried to close this
+with prompt engineering — an explicit termination rule, assert outcomes fed into
+history, and an Assert→Finish example — and it made the measured invalid-output
+rate *worse* (0% → 40%), so it was reverted. See
+[docs/DECISIONS.md](docs/DECISIONS.md) D15.
+
 **OPEN — which 1B–2B model reliably selects a node index.** Llama-3.2-1B does
 not: 75% invalid, emitting index 0 on 18 of 20 calls. **Qwen2.5-1.5B does: 0%
 invalid across 20 calls, choosing indices 12, 13, 14, 17, 22 and 23 appropriately
@@ -90,14 +101,20 @@ screens, every reply through the real validator.
 
 | screen | tokens | calls | valid | invalid | mean latency |
 |---|---|---|---|---|---|
-| search | 453 | 4 | 4 | 0% | 2.4s |
-| results | 407 | 4 | 4 | 0% | 2.3s |
-| restaurant | 630 | 4 | 4 | 0% | 2.6s |
-| cart | 407 | 4 | 4 | 0% | 2.3s |
-| checkout | 414 | 4 | 4 | 0% | 2.2s |
+| search | 453 | 5 | 5 | 0% | 4.1s |
+| results | 407 | 5 | 5 | 0% | 3.5s |
+| restaurant | 630 | 5 | 5 | 0% | 4.0s |
+| cart | 407 | 5 | 5 | 0% | 3.9s |
+| checkout | 414 | 5 | 5 | 0% | 4.1s |
 
-**20 calls · 20 valid · 0% invalid-output rate · mean 4.0s per planning call.**
-Cold start 136s (1.1GB, once). Warm start 3.5s.
+**25 calls · 25 valid · 0% invalid-output rate · mean 3.9s per planning call**
+(p50 3.8s, max 6.4s). Cold start 136s (1.1GB, once). Warm start 3.5s.
+
+Re-measured 17 Sep 2026. An earlier run of the same script reported 2.2–2.6s
+per call; the difference is which GPU Chrome handed WebGPU, not a change in the
+model — see the note on integrated versus discrete GPUs in
+[docs/DEPLOY.md](docs/DEPLOY.md). Latency is the one number here that moves
+with the machine.
 
 The same protocol against Llama-3.2-1B: **75% invalid**, index 0 on 18 of 20
 calls. See [docs/DECISIONS.md](docs/DECISIONS.md) D12 for the comparison and the
@@ -214,7 +231,7 @@ Every one has a test with its name on it.
 
 | tier | what it is | cost | notes |
 |---|---|---|---|
-| **local** | Llama 3.2 1B Instruct on WebGPU, via WebLLM | nothing | Weights cached after first load. 1B is the class we will run on the phone — a 3B would score better and lie about the Android story |
+| **local** | Qwen2.5-1.5B-Instruct q4f16 on WebGPU, via WebLLM | nothing | What `DEFAULT_LOCAL_MODEL` actually loads. Weights (~1.1GB) cached after first load. Llama-3.2-1B ships as a fallback constant only — it measured 75% invalid, so it is not the default |
 | **cloud** | OpenRouter free tier | nothing | Key supplied at runtime, never committed. Absent key = tier reports unavailable, never a prompt |
 | **mock** | a fixed plan, resolved against the live screen | nothing | Runs the *real* loop with no model. The status strip says `mock` the whole time |
 
@@ -228,7 +245,7 @@ defect, not a cosmetic one.
 pnpm install
 pnpm dev            # the demo: Tiffin + the console
 pnpm dev:debug      # the debug panel: the app beside what the agent sees
-pnpm verify         # typecheck → lint → boundaries → 242 tests
+pnpm verify         # typecheck → lint → boundaries → 290 tests
 pnpm measure        # the pruning and token table above, from a real browser
 pnpm e2e            # drive the built demo end to end in Chromium
 node scripts/build-extension.mjs   # the Chrome extension
