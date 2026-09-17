@@ -33,3 +33,7 @@ Thumbs.db
 
 # recorded demo footage — large, regenerate with pnpm record
 .shots/video/
+# the rendered submission video and its audio, copied to the root for
+# convenience — regenerate with `pnpm render`, never commit 16MB of mp4
+ORIGO-DEMO-FINAL.mp4
+ORIGO-DEMO-AUDIO-ONLY.m4a
