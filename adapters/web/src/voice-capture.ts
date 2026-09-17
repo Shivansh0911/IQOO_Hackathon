@@ -11,7 +11,7 @@
  */
 
 import type { GateInput, Result, VoiceLocale } from '@origo/core';
-import { RMS_FLOOR, describeThrown, err, ok } from '@origo/core';
+import { MIN_VOICED_MS, RMS_FLOOR, describeThrown, err, ok } from '@origo/core';
 
 export interface CaptureError {
   readonly kind: 'unsupported' | 'permission-denied' | 'no-speech' | 'aborted' | 'platform-error';
@@ -65,6 +65,42 @@ export function describeRecognitionError(code: string): CaptureError {
     default:
       return { kind: 'platform-error', message: `Speech recognition failed: ${code || 'unknown error'}.` };
   }
+}
+
+/**
+ * Explains an empty transcript by looking at what the microphone measured.
+ *
+ * MEASURED, driving the deployed site: recognition can end having emitted only
+ * `end` — no `start`, no `result`, and no `error` code at all. Chrome uploads
+ * audio to a Google service to transcribe it, and when that service is
+ * unreachable the session just stops. Nothing throws.
+ *
+ * With no error to report, the empty transcript fell through to the energy gate,
+ * which said *"a transcript this weak is far more likely to be silence than an
+ * instruction"*. If the person actually spoke, that message is wrong — and it
+ * sends them looking at their microphone, which is working fine.
+ *
+ * We already hold the evidence to tell these apart, because the gate needs it:
+ * peak amplitude and how long the user was voicing. Loud enough and long
+ * enough means the mic worked and recognition did not.
+ */
+export function explainEmptyTranscript(measured: {
+  readonly peakRms: number;
+  readonly voicedMs: number;
+}): CaptureError | null {
+  const heardSomething = measured.peakRms >= RMS_FLOOR && measured.voicedMs >= MIN_VOICED_MS;
+  if (!heardSomething) {
+    // Genuinely quiet: let the energy gate speak, it is right about this one.
+    return null;
+  }
+  return {
+    kind: 'platform-error',
+    message:
+      `The microphone worked — ${Math.round(measured.voicedMs)}ms of speech was measured — but the browser ` +
+      'returned no transcript. Chrome sends audio to a Google service to transcribe it, and the session ends ' +
+      'silently when that is unreachable: no network, a VPN or firewall in the way, or a Chromium build without ' +
+      'the service. The agent itself is unaffected — type the goal and everything else works.',
+  };
 }
 
 export interface LiveState {
@@ -281,10 +317,21 @@ export class VoiceCapture {
     // success. Returning ok({transcript: ''}) sent it down the gate path,
     // which then rejected it for the wrong reason and never mentioned the real
     // one — which is how "the mic does not work" became unexplainable.
-    if (!transcript && this.recognitionError) {
-      const failure = this.recognitionError;
-      await this.teardown();
-      return err(failure);
+    if (!transcript) {
+      // An error code, if we were given one.
+      if (this.recognitionError) {
+        const failure = this.recognitionError;
+        await this.teardown();
+        return err(failure);
+      }
+      // No code at all is the common case — see explainEmptyTranscript. If the
+      // person was audibly speaking, say that recognition failed rather than
+      // letting the gate call it silence.
+      const explained = explainEmptyTranscript({ peakRms: this.peakRms, voicedMs: this.voicedMs });
+      if (explained) {
+        await this.teardown();
+        return err(explained);
+      }
     }
 
     const measured: GateInput = {

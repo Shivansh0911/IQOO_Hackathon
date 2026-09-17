@@ -12,5 +12,5 @@ export { HashSettleStrategy, DEFAULT_SETTLE } from './settle.js';
 export { mapRole } from './role-map.js';
 export { createWebProfile } from './profile.js';
 export type { WebProfileOptions } from './profile.js';
-export { VoiceCapture, describeRecognitionError, isVoiceSupported } from './voice-capture.js';
+export { VoiceCapture, describeRecognitionError, explainEmptyTranscript, isVoiceSupported } from './voice-capture.js';
 export type { CaptureError, CaptureOptions, LiveState } from './voice-capture.js';

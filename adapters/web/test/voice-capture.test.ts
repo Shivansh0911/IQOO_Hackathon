@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { describeRecognitionError } from '../src/voice-capture.js';
+import { describeRecognitionError, explainEmptyTranscript } from '../src/voice-capture.js';
 
 const CODES = [
   'not-allowed',
@@ -71,5 +71,38 @@ describe('describeRecognitionError', () => {
 
   it('mentions the microphone when there is no capture device', () => {
     expect(describeRecognitionError('audio-capture').message).toMatch(/microphone/i);
+  });
+});
+
+describe('explainEmptyTranscript', () => {
+  it('stays silent when the room really was silent', () => {
+    // The energy gate is right about this case and says it better, so we must
+    // not talk over it with a recogniser story.
+    expect(explainEmptyTranscript({ peakRms: 0.001, voicedMs: 0 })).toBeNull();
+    expect(explainEmptyTranscript({ peakRms: 0.2, voicedMs: 50 })).toBeNull();
+  });
+
+  it('blames recognition, not the microphone, when speech WAS measured', () => {
+    // Driving the live site showed recognition ending with only an `end` event:
+    // no result and no error code. The empty transcript then reached the energy
+    // gate, which called it silence — while the person had just spoken.
+    const explained = explainEmptyTranscript({ peakRms: 0.3, voicedMs: 1400 });
+    expect(explained).not.toBeNull();
+    expect(explained?.message).toMatch(/microphone worked/i);
+    expect(explained?.message).toMatch(/no transcript/i);
+  });
+
+  it('quotes how much speech it measured, so the claim is checkable', () => {
+    const explained = explainEmptyTranscript({ peakRms: 0.3, voicedMs: 1437.6 });
+    expect(explained?.message).toContain('1438ms');
+  });
+
+  it('names the causes and keeps the agent out of it', () => {
+    // The agent runs on-device; only the microphone needs the network. A
+    // message that blurs the two makes our headline claim look false.
+    const message = explainEmptyTranscript({ peakRms: 0.4, voicedMs: 900 })?.message ?? '';
+    expect(message).toMatch(/network|VPN|firewall/i);
+    expect(message).toMatch(/agent itself is unaffected/i);
+    expect(message).toMatch(/type the goal/i);
   });
 });
