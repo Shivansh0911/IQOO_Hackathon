@@ -75,11 +75,31 @@ Nothing in packages/** may import from adapters/** or apps/**.
 - No step leaves the tree in a non-compiling state
 
 ## Hackathon scoring context (shapes priorities, not architecture)
-End product quality 30% · Novelty 20% · Creative device use 15% · Technical depth 15% ·
-Phone-to-laptop bridge 10% · Demo 10%.
-Practical consequence: voice and local inference are the primary paths, not toggles. The
-HTML report must be exportable. Showing guardrails recovering is worth more than hiding
-them.
+
+There are TWO rubrics and they are not the same. Confusing them is how a team
+optimises for the wrong round.
+
+**RUBRIC 1 — SELECTION ROUND (this is what the submission is judged on, now):**
+Problem clarity and relevance · Novelty and originality · AI-first thinking ·
+iQOO device fit · Feasibility and impact. No published weights.
+Practical consequence: the submission text must ARGUE these, not assume a reader
+infers them. "iQOO device fit" in particular is not implicit — it has to be
+stated: the runtime is the OS, the agent acts through the accessibility layer,
+and there is no laptop version of this product. "AI-first thinking" is why the
+on-device tier must be visible in the video and not merely described.
+
+**RUBRIC 2 — ON-SITE ROUND (only if selected, 30 hours in Hyderabad):**
+End product quality 30% · Novelty 20% · Creative device use 15% ·
+Technical depth 15% · Phone-to-laptop bridge 10% · Demo 10%.
+Practical consequence: voice and local inference are the primary paths, not
+toggles. The HTML report must be exportable. Showing guardrails recovering is
+worth more than hiding them.
+
+**Continuation is sanctioned.** The organisers' FAQ: "If you submitted a
+prototype at registration, you can keep building on it on-site." So hour zero on
+site continues THIS repo. Nothing in docs/ may hedge about a clean-room rebuild.
+OpenRouter credits are confirmed in writing for the event, which makes the
+cloud-tier fallback funded rather than hypothetical.
 
 ## Working style
 - State a 5-line plan before non-trivial code.

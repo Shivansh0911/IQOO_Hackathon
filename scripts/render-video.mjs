@@ -24,7 +24,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { mkdir, writeFile, readFile, rm, stat, readdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
@@ -142,6 +142,17 @@ const SECTIONS = [
     clips: ['clip-03-guardrail'],
     scriptLines: [1, 4], // the guardrail half of the IT IS SAFE table
   },
+  // The only claim that had no footage behind it. Every other clip reads
+  // `PLANNER mock · MODEL scripted` — honest, but it left a reviewer with no
+  // visual evidence the on-device tier exists at all, which is the headline.
+  // The section deliberately ends on the multi-step gap: single-shot planning
+  // is what we measured, and the card must not imply more.
+  {
+    script: 'IT RUNS ON THE DEVICE',
+    heading: 'IT RUNS ON THE DEVICE',
+    context: 'A 1.5B model, in the browser, with the network off.',
+    clips: ['clip-06-ondevice'],
+  },
   {
     script: 'IT IS SAFE',
     heading: 'WHEN THE MODEL IS WRONG',
@@ -157,8 +168,8 @@ const SECTIONS = [
   },
 ];
 
-const CARD_SECONDS = 4;
-const TITLE_SECONDS = 6;
+const CARD_SECONDS = 3;
+const TITLE_SECONDS = 5;
 const CLOSING_SECONDS = 10;
 /** Height of the burned-in caption band. Footage is letterboxed above it. */
 const BAND_H = 168;
@@ -310,9 +321,19 @@ async function encodeClip(clip, captions, index) {
     process.exit(1);
   }
 
-  // Trim the page-load flash at the head and the tail cut.
-  const head = 0.6;
-  const usable = Math.max(1, real - head - 0.1);
+  // Trim the page-load flash at the head and the tail cut — unless the clip
+  // ships a beats.json naming an explicit window.
+  //
+  // clip-06 needs one. The take is 45.6s and 12.5s of it is the model loading
+  // from cache, against a 2-second budget for anything that looks like a
+  // spinner. The window starts 2.2s before the strip flips, so the press and a
+  // moment of progress are on camera and the wait is cut — an edit, not a
+  // claim: the caption says the model "comes down once", which is exactly what
+  // happened off screen and what a returning user never sees again.
+  const window = readBeatsWindow(clip);
+  const head = window ? window[0] : 0.6;
+  const tail = window ? real - window[1] : 0.1;
+  const usable = Math.max(1, real - head - Math.max(0, tail));
   const narration = captions.reduce((sum, c) => sum + c.secs, 0);
   // If the narration outlasts the footage, freeze the final frame rather than
   // slowing the footage down — a demo must never look slower than it is.
@@ -365,10 +386,34 @@ const PAUSE_AFTER_LINE = 0.4;
  */
 const MAX_FREEZE_SECONDS = 5;
 
-/** How much of a clip is left after the head flash and the tail cut. */
+/**
+ * An explicit [start, end] window for a clip, if it ships one.
+ *
+ * Written by scripts/record-ondevice.mjs from the beat offsets it measured
+ * during the take, so a re-recorded clip brings its own window rather than
+ * inheriting a stale hardcoded one.
+ */
+function readBeatsWindow(clip) {
+  const file = path.join(videoDir, clip, 'beats.json');
+  if (!existsSync(file)) return null;
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8'));
+    const window = parsed?.window;
+    if (Array.isArray(window) && window.length === 2 && window[1] > window[0]) return window;
+  } catch {
+    // A malformed sidecar falls back to the default trim rather than failing
+    // the whole render; the segment table will show the untrimmed length.
+  }
+  return null;
+}
+
+/** How much of a clip is left after trimming. */
 function usableSecondsOf(clip) {
   const real = durationOf(path.join(videoDir, clip, `${clip}.webm`));
-  return real === null ? 0 : Math.max(1, real - 0.6 - 0.1);
+  if (real === null) return 0;
+  const window = readBeatsWindow(clip);
+  if (window) return Math.max(1, Math.min(real, window[1]) - window[0]);
+  return Math.max(1, real - 0.6 - 0.1);
 }
 
 /**
@@ -763,8 +808,10 @@ ${mix.error}`);
     process.exit(1);
   }
 
-  if (total < 180 || total > 240) {
-    console.error(`DURATION OUT OF RANGE: ${stamp(total)} is not between 3:00 and 4:00.`);
+  // The brief's window: 3:30 to 4:00. Tighter than the old 3:00 floor because
+  // the on-device section is now load-bearing and must not be squeezed out.
+  if (total < 210 || total > 240) {
+    console.error(`DURATION OUT OF RANGE: ${stamp(total)} is not between 3:30 and 4:00.`);
     console.error('Adjust the narration in docs/VIDEO_SCRIPT.md — it drives the timing.');
     process.exit(1);
   }

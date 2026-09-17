@@ -48,8 +48,15 @@ still need a human decision.
 > Wikipedia page, and a run where the on-device model was not good enough — 15
 > bad outputs in 20 calls, all caught, none reaching the app. The console replays
 > that run. We would rather show you the guardrails working than a happy path.
+>
+> **Why this belongs on the phone and nowhere else.** The runtime is the
+> operating system: the agent acts through Android's accessibility layer — the
+> same interface a screen reader uses — so it drives any installed app without
+> that app's cooperation, an SDK, or root. There is no laptop version of this
+> product. On-device inference is not a feature bolted on; it is the reason the
+> idea works at all, because the UI tree never leaves the handset.
 
-*(149 words.)*
+*(221 words.)*
 
 ---
 

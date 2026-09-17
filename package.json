@@ -26,6 +26,7 @@
     "render": "node scripts/render-video.mjs && node scripts/verify-video.mjs",
     "verify:video": "node scripts/verify-video.mjs",
     "check:live": "node scripts/check-live.mjs",
+    "record:ondevice": "node scripts/record-ondevice.mjs",
     "measure:sites": "node scripts/measure-real-sites.mjs",
     "verify:flows": "node scripts/verify-flows.mjs"
   },

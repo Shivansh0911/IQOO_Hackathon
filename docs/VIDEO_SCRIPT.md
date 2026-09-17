@@ -9,10 +9,19 @@
 | `clip-03-guardrail.webm` | **12.3s** | the confirmation sheet, held, then Deny → Blocked |
 | `clip-04-fail.webm` | **13.9s** | the red verdict, then a hold on the failing assert line |
 | `clip-05-rejects.webm` | **23.1s** | six real rejections stepped through, raw model text and validator error |
-| **total footage** | **94.6s** | |
+| `clip-06-ondevice.webm` | **45.6s** raw, **25.0s** used | the strip flipping to the local tier, holding there with the network OFF, and the on-device model planning a real action |
+| **total footage** | **140.2s** | |
 
-Two slots are yours to record: the opener and the close. Everything between is
-footage that exists.
+Everything in the rendered cut is footage that exists — `pnpm render` needs
+nothing from you. The two human slots below (opener and close) apply only if
+you re-cut it by hand with your own voice.
+
+> **clip-06 carries its own cut points.** `scripts/record-ondevice.mjs` writes
+> `beats.json` next to the clip with the offsets it measured during the take,
+> and the renderer reads the `window` from there. The raw take is 45.6s of
+> which 12.5s is the model loading out of cache; the window starts 2.2s before
+> the strip flips, so the press and a moment of progress are on camera and the
+> wait is cut. Re-record and the window comes back correct on its own.
 
 > **One deviation from the original plan, and why.** The brief allotted 0:50–1:50
 > — a full minute — to clip-01. The run finishes in about two seconds on the
@@ -33,10 +42,8 @@ targets — if you overrun a line, cut a sentence, don't rush it.
 | # | narration | secs |
 |---|---|---|
 | 1 | "Testing a phone app still needs a laptop." | 2 |
-| 2 | "You either write code against it, or you tap through it yourself." | 4 |
-| 3 | "And the AI option means sending your screen to someone else's cloud." | 4 |
-| 4 | "We built the other thing. You tell the phone what to test. It tests itself." | 5 |
-| 5 | *(beat — let it land)* | 3 |
+| 2 | "And the AI option means sending your screen to someone else's cloud." | 4 |
+| 3 | "We built the other thing. You tell the phone what to test. It tests itself." | 5 |
 
 ### 0:18 – 0:45 · THE INSIGHT — *over `clip-02-tokens.webm`*
 
@@ -47,10 +54,9 @@ Lead with the number. It is the whole argument.
 | 1 | "Every other screen agent takes a screenshot and sends the picture to a big model." | 4 |
 | 2 | "We don't read pixels. We read structure." | 3 |
 | 3 | "The operating system already keeps a tree of every element on screen — that's what screen readers use." | 5 |
-| 4 | "We serialise that tree to compact JSON." | 3 |
-| 5 | "One screen: four hundred and thirty-eight tokens. A screenshot is about fifteen hundred." | 5 |
-| 6 | "That's measured, with a real tokenizer. The count is on screen, top right, live." | 4 |
-| 7 | "And it doesn't grow. A thirteen-thousand-node Wikipedia page still came out at seven twenty-five." | 5 |
+| 4 | "One screen, serialised to compact JSON: four hundred and thirty-eight tokens. A screenshot is about fifteen hundred." | 6 |
+| 5 | "That's measured, with a real tokenizer. The count is on screen, top right, live." | 4 |
+| 6 | "And it doesn't grow. A thirteen-thousand-node Wikipedia page still came out at seven twenty-five." | 5 |
 
 > **Cut point:** clip-02 is 23s; this narration is 29s. Hold the last frame of
 > clip-02 for ~6s, or let line 7 run over the first seconds of clip-01.
@@ -98,17 +104,31 @@ produces a red Fail, and this is that.
 | 10 | "Every team here will show you their happy path. This is what ours does when the model is wrong." | 6 | 05 |
 | 11 | *(hold, silent)* | 3 | 05 |
 
+### IT RUNS ON THE DEVICE — *`clip-06-ondevice.webm`*
+
+The one claim with no footage behind it until now. Every other clip reads
+`PLANNER mock · MODEL scripted`, which is honest but leaves a reviewer with no
+evidence the on-device tier exists. Line 5 is **required** — the section must
+not imply more than single-shot planning, which is what we measured.
+
+| # | narration | secs |
+|---|---|---|
+| 1 | "Press load, and a one-and-a-half-billion-parameter model comes down once." | 4 |
+| 2 | "The strip is read live. It never says on-device unless it is." | 4 |
+| 3 | "Now watch the network go off — and it keeps planning." | 4 |
+| 4 | "Single-shot, this is measured at zero invalid outputs over twenty-five calls." | 5 |
+| 5 | "Finishing a whole multi-step task on-device is still open. That is the gap." | 5 |
+
+---
+
 ### 1:58 – 2:30 · IT PORTS — *architecture slide, or the repo tree on screen*
 
 | # | narration | secs |
 |---|---|---|
 | 1 | "The DOM and Android's accessibility tree are the same kind of thing." | 4 |
-| 2 | "A tree of elements, with roles, text, bounds and flags." | 3 |
-| 3 | "So the agent was built against an abstraction, not against a browser." | 4 |
-| 4 | "Thirty-four hundred lines of it — the loop, the validator, the guardrails, the report — have zero web code." | 6 |
-| 5 | "That's not a promise. It's machine-enforced: a lint rule and a compiler setting both fail the build." | 6 |
-| 6 | "The same core already runs on two surfaces: this page, and a Chrome extension on real websites." | 5 |
-| 7 | "Android is the third. The adapter is the only new part." | 4 |
+| 2 | "Thirty-four hundred lines — the loop, the validator, the guardrails, the report — have zero web code." | 6 |
+| 3 | "That's not a promise. It's machine-enforced: a lint rule and a compiler setting both fail the build." | 6 |
+| 4 | "The same core already runs on this page and on a Chrome extension. Android is the third, and the adapter is the only new part." | 7 |
 
 ### 2:30 – 3:00 · WHO, AND WHAT IS OPEN — *you on camera*
 
@@ -124,11 +144,10 @@ it answers the question a judge was about to ask.
 | # | narration | secs |
 |---|---|---|
 | 1 | "We are a team from BITS Pilani, Hyderabad campus." | 4 |
-| 2 | "Everything in this video is in the repository. Every number has a script that reproduces it." | 5 |
-| 3 | "And one thing is still open." | 3 |
-| 4 | "Which small model reliably finishes a multi-step task." | 4 |
-| 5 | "Llama one-B couldn't pick an element at all. Qwen one-point-five-B picks correctly every time — but doesn't reliably know when to stop." | 8 |
-| 6 | "We know that because we measured it. The architecture is done. The model is the gap." | 6 |
+| 2 | "And one thing is still open." | 3 |
+| 3 | "Which small model reliably finishes a multi-step task." | 4 |
+| 4 | "Llama one-B couldn't pick an element at all. Qwen one-point-five-B picks correctly every time — but doesn't reliably know when to stop." | 8 |
+| 5 | "We know that because we measured it. The architecture is done. The model is the gap." | 6 |
 
 ---
 

@@ -1,11 +1,30 @@
 # If selected — the hour-zero document
 
 Open this first. Written for two tired people under a 30-hour clock. Commands
-and checklists. Nothing here is built yet; it is the plan.
+and checklists. The *web* product is built, tested and deployed; what is
+unbuilt, and what this document plans, is the Android adapter.
 
 **The one rule for the whole event:** when something is unknown, measure it
 before you build on it. Every number in this repo came from a script, and twice
 that habit stopped us shipping a claim that was false.
+
+## Hour zero starts from THIS REPO. We do not restart.
+
+The organisers' FAQ says it plainly: *"If you submitted a prototype at
+registration, you can keep building on it on-site."* So continuing this codebase
+at the venue is explicitly sanctioned, and the 30-hour plan assumes it.
+
+What that is worth, concretely: the loop, the validator, the seven action
+schemas, the six-reason pruning policy, the guardrails, the report generator and
+the prompt assembly — 3,441 lines with 296 tests — are **already written and
+already measured**. None of that is hour-zero work. The only new code on site is
+the Android adapter behind the existing port interfaces: an accessibility-tree
+reader, a gesture executor, and a MediaPipe planner. Everything above them is
+reused unchanged, which is the claim RULE A exists to make true.
+
+Read that as a schedule, not a boast: the 30 hours buy one adapter and a
+measurement pass, not a product. If we were rebuilding from scratch the honest
+answer would be that 30 hours is not enough.
 
 ---
 
@@ -147,9 +166,13 @@ model family.
   screens. `scripts/gate2-measure.mjs` is the pattern; port the harness, not the
   judgement.
 - **Threshold:** invalid-output rate under 25% = proceed. Over = mitigate.
-- **Mitigation:** switch to the **OpenRouter credits provided on site**. The
-  CloudPlanner is already written, tested and wired. It is a one-line tier
-  change and the status strip tells the truth about it automatically.
+- **Mitigation:** switch to the **OpenRouter credits provided on site** —
+  confirmed in writing by the organisers ("Open Router credits will be provided
+  during the hackathon"), so this fallback is *funded* rather than hoped for.
+  That is what makes the hour-6 decision cheap: it costs a tier change, not a
+  budget. The CloudPlanner is already written, tested and wired; it is a
+  one-line change and the status strip tells the truth about it automatically.
+  The only thing we lose is the on-device claim, and the strip will say so.
 - **DECISION DEADLINE: hour 6.** Do not be at hour 10 still hoping. Write the
   time on a sticky note.
 
